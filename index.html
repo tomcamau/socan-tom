@@ -1,6 +1,6 @@
 <!DOCTYPE html>
 <html lang="vi">
-<!-- BUILD-MARKER: socan-tom-v5-2026-08-03 (dùng để kiểm tra đã deploy đúng bản mới chưa) -->
+<!-- BUILD-MARKER: socan-tom-v7-2026-08-03 (dùng để kiểm tra đã deploy đúng bản mới chưa) -->
 <head>
      <!-- ===== THÊM 2 DÒNG NÀY ===== -->
     <link rel="manifest" href="/socan_tom/manifest.json">
@@ -1001,6 +1001,7 @@
     <div class="toolbar-row flex-shrink-0">
         <button class="toggle-numpad-btn" id="toggleNumpadBtn" onclick="toggleNumpad()">⌨️</button>
         <div class="spacer"></div>
+        <button class="btn" style="flex:0.8;background:#f59e0b;color:#fff;font-weight:700;" onclick="openMoneyCalc()">💰 Tính tiền</button>
         <button class="btn btn-success" onclick="addRow()" style="flex:0.6;">➕ Dòng</button>
         <button class="btn btn-danger" onclick="removeRow()" style="flex:0.6;">➖ Dòng</button>
         <button class="btn btn-primary" onclick="addColumn()" style="flex:0.6;">➕ Cột</button>
@@ -1071,6 +1072,33 @@
             <button class="btn btn-secondary" onclick="exportAllData()">📦 Xuất tất cả</button>
             <button class="btn btn-danger" onclick="clearAllHistory()">🗑️ Xóa hết</button>
         </div>
+    </div>
+</div>
+
+<!-- ===== TÍNH TIỀN OVERLAY ===== -->
+<div class="menu-overlay" id="moneyCalcOverlay" onclick="closeMoneyCalcOutside(event)">
+    <div class="menu-panel" onclick="event.stopPropagation()" style="max-width:380px;">
+        <div class="menu-header">
+            <h2>💰 Tính tiền</h2>
+            <button class="close-btn" onclick="closeMoneyCalc()">✕</button>
+        </div>
+        <div style="padding:6px 4px 4px;">
+            <label style="font-size:13px;font-weight:700;color:#475569;">Tổng số kg tôm</label>
+            <input type="number" id="moneyKgInput" inputmode="decimal" step="0.1"
+                style="width:100%;box-sizing:border-box;padding:12px;margin:6px 0 16px;border:1.5px solid #cbd5e1;border-radius:10px;font-size:17px;font-weight:800;color:#1e293b;"
+                oninput="updateMoneyResult()">
+
+            <label style="font-size:13px;font-weight:700;color:#475569;">Giá (đồng/kg)</label>
+            <input type="number" id="moneyPriceInput" inputmode="decimal" step="1000" placeholder="VD: 150000"
+                style="width:100%;box-sizing:border-box;padding:12px;margin:6px 0 16px;border:1.5px solid #cbd5e1;border-radius:10px;font-size:17px;font-weight:800;color:#1e293b;"
+                oninput="updateMoneyResult()">
+
+            <div style="background:#f0fdf4;border:2px solid #22c55e;border-radius:14px;padding:16px;text-align:center;margin-bottom:16px;">
+                <div style="font-size:12px;color:#166534;font-weight:700;letter-spacing:0.5px;margin-bottom:4px;">THÀNH TIỀN</div>
+                <div id="moneyResult" style="font-size:26px;font-weight:800;color:#15803d;">0 đ</div>
+            </div>
+        </div>
+        <button class="btn btn-primary" onclick="saveMoneyCalc()">💾 Lưu vào lịch sử</button>
     </div>
 </div>
 
@@ -1181,6 +1209,7 @@ let currentTab = 0;
 let totalTabs = 1;
 let selectedRecordIds = new Set();
 let recordTotalsCache = {};
+let recordMoneyCache = {};
 let isCumulative = false;
 let isAutoDecimal = false;
 let decimalPlaces = 1;
@@ -1540,6 +1569,7 @@ function renderMenu() {
 
     let html = '';
     recordTotalsCache = {};
+    recordMoneyCache = {};
     groupKeys.forEach(ao => {
         const records = groups[ao].slice().sort((a, b) => new Date(b.date) - new Date(a.date));
         let aoTotal = 0;
@@ -1565,19 +1595,21 @@ function renderMenu() {
             const total = record.data.reduce((sum, v) => sum + (v || 0), 0);
             const typeLabel = record.type === 'sang' ? '🔄 Sang tôm' : record.type === 'tia' ? '✂️ Thu tỉa' : '📦 Thu hết';
             recordTotalsCache[record.id] = total;
+            recordMoneyCache[record.id] = record.totalMoney || 0;
             const isChecked = selectedRecordIds.has(record.id);
 
             html += `
-                <div class="menu-item ${isActive ? 'active' : ''}">
-                    <input type="checkbox" class="menu-item-check" ${isChecked ? 'checked' : ''} onchange="toggleRecordSelection('${record.id}', this.checked)">
+                <div class="menu-item ${isActive ? 'active' : ''}" onclick="loadRecord('${record.id}')" style="cursor:pointer;">
+                    <input type="checkbox" class="menu-item-check" ${isChecked ? 'checked' : ''} onclick="event.stopPropagation()" onchange="toggleRecordSelection('${record.id}', this.checked)">
                     <div class="info">
                         <div class="name">${typeLabel} • ${total.toFixed(1)} kg</div>
                         <div class="detail">${record.note || 'Không ghi chú'}</div>
                         <div class="detail" style="font-size:10px;color:#94a3b8;">${dateStr}</div>
+                        ${record.totalMoney ? `<div class="detail" style="font-size:12px;color:#15803d;font-weight:700;">💰 ${record.moneyKg.toFixed(1)} kg × ${record.priceMoney.toLocaleString('vi-VN')} đ = ${record.totalMoney.toLocaleString('vi-VN')} đ</div>` : ''}
                     </div>
                     <div class="actions">
-                        <button class="load" onclick="loadRecord('${record.id}')">📂</button>
-                        <button class="del" onclick="deleteRecord('${record.id}')">🗑️</button>
+                        <span style="color:#94a3b8;font-size:16px;padding:0 4px;">›</span>
+                        <button class="del" onclick="event.stopPropagation(); deleteRecord('${record.id}')">🗑️</button>
                     </div>
                 </div>
             `;
@@ -1614,10 +1646,14 @@ function updateAoSelectedSumBar() {
         bar.style.display = 'none';
         return;
     }
-    let sum = 0;
-    selectedRecordIds.forEach(id => { sum += recordTotalsCache[id] || 0; });
+    let sum = 0, sumMoney = 0;
+    selectedRecordIds.forEach(id => {
+        sum += recordTotalsCache[id] || 0;
+        sumMoney += recordMoneyCache[id] || 0;
+    });
     bar.style.display = 'flex';
-    text.textContent = `🧮 Đã chọn ${selectedRecordIds.size} dòng — Tổng: ${sum.toFixed(1)} kg`;
+    text.textContent = `🧮 Đã chọn ${selectedRecordIds.size} dòng — Tổng: ${sum.toFixed(1)} kg` +
+        (sumMoney > 0 ? ` — 💰 ${sumMoney.toLocaleString('vi-VN')} đ` : '');
 }
 
 // ===== QUẢN LÝ RECORD =====
@@ -1666,6 +1702,55 @@ function getCurrentRecord() {
         data: [...gridData],
         date: new Date().toISOString()
     };
+}
+
+// ===== TÍNH TIỀN =====
+function openMoneyCalc() {
+    let total = 0;
+    gridData.forEach(v => { if (v && !isNaN(v) && v > 0) total += v; });
+
+    const existing = currentRecordId ? allRecords.find(r => r.id === currentRecordId) : null;
+    document.getElementById('moneyKgInput').value = (existing && existing.moneyKg != null) ? existing.moneyKg : total.toFixed(1);
+    document.getElementById('moneyPriceInput').value = (existing && existing.priceMoney) ? existing.priceMoney : '';
+    updateMoneyResult();
+    document.getElementById('moneyCalcOverlay').classList.add('show');
+}
+
+function closeMoneyCalc() {
+    document.getElementById('moneyCalcOverlay').classList.remove('show');
+}
+
+function closeMoneyCalcOutside(e) {
+    if (e.target === e.currentTarget) closeMoneyCalc();
+}
+
+function updateMoneyResult() {
+    const kg = parseFloat(document.getElementById('moneyKgInput').value) || 0;
+    const price = parseFloat(document.getElementById('moneyPriceInput').value) || 0;
+    const total = Math.round(kg * price);
+    document.getElementById('moneyResult').textContent = total.toLocaleString('vi-VN') + ' đ';
+}
+
+function saveMoneyCalc() {
+    const kg = parseFloat(document.getElementById('moneyKgInput').value) || 0;
+    const price = parseFloat(document.getElementById('moneyPriceInput').value) || 0;
+    if (!price) { alert('⚠️ Nhập giá tiền trước đã.'); return; }
+    const totalMoney = Math.round(kg * price);
+
+    let record = currentRecordId ? allRecords.find(r => r.id === currentRecordId) : null;
+    if (!record) {
+        // Ao này chưa lưu lần nào -> lưu mới luôn kèm số liệu đang có trên bảng
+        record = getCurrentRecord();
+        allRecords.push(record);
+        currentRecordId = record.id;
+    }
+    record.moneyKg = kg;
+    record.priceMoney = price;
+    record.totalMoney = totalMoney;
+    saveAllRecords();
+    renderMenu();
+    closeMoneyCalc();
+    alert('✅ Đã lưu vào lịch sử:\n' + kg.toFixed(1) + ' kg × ' + price.toLocaleString('vi-VN') + ' đ = ' + totalMoney.toLocaleString('vi-VN') + ' đ');
 }
 
 // ===== SAVE OPTIONS =====
