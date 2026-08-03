@@ -1,6 +1,6 @@
 <!DOCTYPE html>
 <html lang="vi">
-<!-- BUILD-MARKER: socan-tom-v3-2026-08-03 (dùng để kiểm tra đã deploy đúng bản mới chưa) -->
+<!-- BUILD-MARKER: socan-tom-v5-2026-08-03 (dùng để kiểm tra đã deploy đúng bản mới chưa) -->
 <head>
      <!-- ===== THÊM 2 DÒNG NÀY ===== -->
     <link rel="manifest" href="/socan_tom/manifest.json">
@@ -1010,6 +1010,7 @@
         <button class="btn btn-info" onclick="showSaveOptions()">💾 Lưu</button>
         <button class="btn btn-success" onclick="exportExcelReal()">📊 CSV</button>
         <button class="btn btn-secondary" onclick="exportJSON()">🗂️ Sao lưu</button>
+        <button class="btn btn-secondary" onclick="loadData()">📥 Khôi phục</button>
         <button class="btn btn-danger" onclick="resetAll()">🔄 Reset</button>
     </div>
 
@@ -1098,7 +1099,7 @@
                 Mở menu trình duyệt (thường là biểu tượng ⋮ hoặc chia sẻ ⬆️) và tìm mục <b>"Thêm vào màn hình chính"</b>.
             </p>
             <div style="margin-top:14px;padding:12px 14px;background:linear-gradient(135deg,#fef3c7,#fde68a);border:2px dashed #d97706;border-radius:12px;text-align:center;">
-                <p style="font-size:14px;font-weight:700;color:#92400e;line-height:1.6;margin-bottom:8px;">☕ NẾU BÀ CON THẤY SỔ NÀY HỮU ÍCH CHO CÔNG VIỆC THU TÔM THÌ CÓ THỂ MỜI TÁC GIẢ LY CAFE MỖI LẦN TRÚNG TÔM</p>
+                <p style="font-size:14px;font-weight:700;color:#92400e;line-height:1.6;margin-bottom:8px;">☕ NẾU BÀ CON THẤY SỔ NÀY HỮU ÍCH CHO CÔNG VIỆC THU TÔM THÌ CÓ THỂ MỜI TÁC GIẢ LY CAFE KHI TRÚNG TÔM NHA.</p>
                 <p style="font-size:16px;font-weight:800;color:#78350f;letter-spacing:0.5px;margin-bottom:2px;">19026616444018</p>
                 <p style="font-size:13px;font-weight:700;color:#92400e;">TECHCOMBANK - CHỦ TK: BUI THI TIN</p>
             </div>
@@ -1224,6 +1225,7 @@ document.addEventListener('DOMContentLoaded', function() {
     loadToggleStates();
     loadNumpadState();
     loadAllRecords();
+    removeLegacySampleRecords();
 
     // Luôn mở app với bảng SẠCH, không tự nạp lại số liệu ao cũ / mẫu.
     // Người dùng có thể xem lại số liệu ao cũ qua nút 📋 (Lịch sử ao) khi cần.
@@ -1632,6 +1634,25 @@ function saveAllRecords() {
     try {
         localStorage.setItem('cantom_all_records', JSON.stringify(allRecords));
     } catch(e) {}
+}
+
+// Dọn dẹp 3 ao mẫu còn sót lại trên máy từ hồi test bản cũ (nhận diện đúng theo
+// số liệu đặc trưng của từng ao mẫu, không đụng tới dữ liệu thật của người dùng).
+function removeLegacySampleRecords() {
+    const sampleFingerprints = [
+        [14.5, 41.4, 74.1, 23.2, 46.5, 73.1, 9.2, 13.3, 12.2, 33.3, 55.5, 44.4, 41.1, 12.2, 33.2, 21.1, 15.5, 18.7, 22.3, 25.0, 30.5],
+        [22.3, 15.6, 33.8, 45.2, 22.5, 13.7, 41.2, 33.1, 15.4, 25.6, 42.1, 33.5, 12.8, 22.4, 35.2, 41.3, 18.5, 20.7, 28.3, 35.0, 40.5],
+        [12.5, 35.6, 62.3, 18.7, 33.4, 55.2, 11.2, 14.5, 13.3, 28.9, 45.6, 37.8, 38.2, 15.7, 29.1, 18.4, 22.5, 26.7, 32.3, 38.0, 42.5]
+    ];
+    const isSample = (record) => {
+        if (!record || !Array.isArray(record.data)) return false;
+        return sampleFingerprints.some(fp =>
+            record.data.length === fp.length && fp.every((v, i) => record.data[i] === v)
+        );
+    };
+    const before = allRecords.length;
+    allRecords = allRecords.filter(r => !isSample(r));
+    if (allRecords.length !== before) saveAllRecords();
 }
 
 function getCurrentRecord() {
@@ -2179,13 +2200,32 @@ function importData(event) {
     reader.onload = function(e) {
         try {
             const data = JSON.parse(e.target.result);
-            if (Array.isArray(data)) {
-                allRecords = data;
-                saveAllRecords();
-                loadLatestRecord();
-                renderMenu();
-                alert('✅ Import thành công ' + data.length + ' ao!');
+            let records;
+            if (data && data.app === 'socan-tom-backup' && Array.isArray(data.records)) {
+                // File sao lưu ĐẦY ĐỦ (bản mới) — chứa toàn bộ lịch sử các ao
+                records = data.records;
+            } else if (Array.isArray(data)) {
+                // File cũ dạng mảng (từ bản sao lưu trước đây)
+                records = data;
             } else {
+                records = null;
+            }
+
+            if (records) {
+                if (!confirm('Khôi phục sẽ THAY THẾ toàn bộ ' + allRecords.length + ' ao hiện có bằng ' + records.length + ' ao trong file sao lưu. Tiếp tục?')) {
+                    event.target.value = '';
+                    return;
+                }
+                allRecords = records;
+                saveAllRecords();
+                gridData = [];
+                for (let i = 0; i < cols * rows; i++) gridData.push(null);
+                renderTable();
+                calculateAll();
+                toggleMenu();
+                alert('✅ Khôi phục thành công ' + records.length + ' ao! Xem danh sách trong 📂 Lịch sử ao.');
+            } else {
+                // File cũ dạng 1 ao đơn lẻ (bản sao lưu rất cũ)
                 document.getElementById('aoNumber').value = data.ao || '1';
                 document.getElementById('harvestType').value = data.type || 'sang';
                 document.getElementById('noteInput').value = data.note || '';
@@ -2200,7 +2240,7 @@ function importData(event) {
                 calculateAll();
                 updateTypeLabel();
                 autoSave();
-                alert('✅ Import thành công!');
+                alert('✅ Khôi phục thành công 1 ao!');
             }
         } catch(err) {
             alert('❌ Lỗi đọc file: ' + err.message);
@@ -2210,17 +2250,23 @@ function importData(event) {
     event.target.value = '';
 }
 
-// ===== SAO LƯU =====
+// ===== SAO LƯU (toàn bộ lịch sử tất cả các ao) =====
 function exportJSON() {
-    const data = getSaveData();
-    const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+    loadAllRecords();
+    const backup = {
+        app: 'socan-tom-backup',
+        version: 1,
+        exportedAt: new Date().toISOString(),
+        records: allRecords
+    };
+    const blob = new Blob([JSON.stringify(backup, null, 2)], { type: 'application/json' });
     const link = document.createElement('a');
     link.href = URL.createObjectURL(blob);
-    link.download = `SoCanTom_Ao${data.ao}_${new Date().toISOString().split('T')[0]}.json`;
+    link.download = `SoCanTom_SaoLuu_${new Date().toISOString().split('T')[0]}.json`;
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
-    alert('🗂️ Đã tải file sao lưu.\n\nFile này dùng để phục hồi lại đúng dữ liệu (qua nút "Nhập dữ liệu") khi mất dữ liệu hoặc chuyển sang máy khác — không dùng để xem số liệu. Muốn xem/gửi số liệu thì dùng nút "📊 CSV".');
+    alert('🗂️ Đã tải file sao lưu TOÀN BỘ ' + allRecords.length + ' ao đã lưu.\n\nFile này dùng để phục hồi lại dữ liệu (bấm nút "📥 Khôi phục") khi mất dữ liệu hoặc chuyển sang máy khác — không dùng để xem số liệu. Muốn xem/gửi số liệu thì dùng nút "📊 CSV".');
 }
 
 // ===== XUẤT CSV =====
