@@ -1,6 +1,6 @@
 <!DOCTYPE html>
 <html lang="vi">
-<!-- BUILD-MARKER: socan-tom-v7-2026-08-03 (dùng để kiểm tra đã deploy đúng bản mới chưa) -->
+<!-- BUILD-MARKER: socan-tom-v10-2026-08-04 (dùng để kiểm tra đã deploy đúng bản mới chưa) -->
 <head>
      <!-- ===== THÊM 2 DÒNG NÀY ===== -->
     <link rel="manifest" href="/socan_tom/manifest.json">
@@ -54,17 +54,25 @@
             display: flex;
             justify-content: space-between;
             align-items: center;
-            padding: 0 4px;
+            padding: 4px 8px;
+            cursor: pointer;
+            user-select: none;
+            -webkit-tap-highlight-color: transparent;
+            background: #f1f5f9;
+            border-radius: 10px;
+            border: 1px solid #e2e8f0;
+            transition: background 0.15s;
         }
-        .header .title { font-size: 18px; font-weight: 700; color: #1e293b; }
-        .header .datetime { font-size: 12px; color: #64748b; }
+        .header:active { background: #e2e8f0; }
+        .header .title { font-size: 15px; font-weight: 700; color: #1e293b; }
+        .header .datetime { font-size: 10px; color: #64748b; }
 
         .menu-btn {
             background: none;
             border: none;
-            font-size: 20px;
+            font-size: 17px;
             cursor: pointer;
-            padding: 4px 8px;
+            padding: 2px 6px;
             border-radius: 8px;
             transition: 0.2s;
         }
@@ -589,7 +597,7 @@
             display: flex;
             align-items: center;
             gap: 6px;
-            padding: 6px 10px;
+            padding: 4px 10px;
             background: #f1f5f9;
             border-radius: 10px;
             border: 1px solid #e2e8f0;
@@ -597,7 +605,7 @@
             user-select: none;
             -webkit-tap-highlight-color: transparent;
             flex-shrink: 0;
-            margin: 3px 0;
+            margin: 2px 0;
             transition: background 0.15s;
         }
         .summary-bar:active { background: #e2e8f0; }
@@ -610,15 +618,15 @@
             min-width: 0;
         }
         .summary-bar-item .label {
-            font-size: 11px;
+            font-size: 10px;
             color: #64748b;
             font-weight: 500;
             white-space: nowrap;
             overflow: hidden;
             text-overflow: ellipsis;
         }
-        .summary-bar-item .value { font-size: 17px; font-weight: 800; color: #1e293b; }
-        .summary-bar-item.total .value { color: #ef4444; font-size: 19px; }
+        .summary-bar-item .value { font-size: 14px; font-weight: 800; color: #1e293b; }
+        .summary-bar-item.total .value { color: #ef4444; font-size: 16px; }
         .summary-bar-item.type .value { color: #2563eb; }
         .summary-bar-divider { width: 1px; align-self: stretch; background: #cbd5e1; flex-shrink: 0; }
         .summary-bar-arrow {
@@ -906,31 +914,21 @@
 <body>
 
 <div class="container">
-    <!-- HEADER -->
-    <div class="header flex-shrink-0">
+    <!-- HEADER (gồm cả TỔNG, bấm để xổ chi tiết Ao/Hình thức/Ghi chú) -->
+    <div class="header flex-shrink-0" id="headerBar" onclick="toggleInfoDetail()">
         <div style="display:flex;align-items:center;gap:6px;">
             <span class="title">🦐 Sổ cân</span>
-            <button class="menu-btn" onclick="toggleMenu()">📋</button>
-            <button class="menu-btn" onclick="showPinTip()" title="Ghim ra màn hình chính">📌</button>
+            <button class="menu-btn" onclick="event.stopPropagation();toggleMenu()">📋</button>
+            <button class="menu-btn" onclick="event.stopPropagation();showPinTip()" title="Ghim ra màn hình chính">📌</button>
         </div>
-        <span class="datetime" id="currentTime"></span>
+        <div style="display:flex;align-items:center;gap:6px;">
+            <span class="label" id="grandTotalLabel" style="font-size:11px;color:#64748b;font-weight:700;">📊 TỔNG</span>
+            <span class="value" id="grandTotal" style="font-size:16px;font-weight:800;color:#ef4444;">0.0 kg</span>
+            <span class="summary-bar-arrow" id="summaryBarArrow">▼</span>
+        </div>
     </div>
 
-    <!-- ===== THANH TỔNG (LUÔN HIỂN THỊ, BẤM ĐỂ XỔ CHI TIẾT) ===== -->
-    <div class="summary-bar flex-shrink-0" id="summaryBar" onclick="toggleInfoDetail()">
-        <div class="summary-bar-item type">
-            <span class="label" id="typeLabel">🔄 Sang tôm</span>
-            <span class="value" id="typeTotal">0.0 kg</span>
-        </div>
-        <div class="summary-bar-divider"></div>
-        <div class="summary-bar-item total">
-            <span class="label" id="grandTotalLabel">📊 TỔNG</span>
-            <span class="value" id="grandTotal">0.0 kg</span>
-        </div>
-        <span class="summary-bar-arrow" id="summaryBarArrow">▼</span>
-    </div>
-
-    <!-- ===== CHI TIẾT: AO / HÌNH THỨC / GHI CHÚ (THU GỌN ĐƯỢC) ===== -->
+    <!-- ===== CHI TIẾT: AO / HÌNH THỨC / SANG TÔM / GHI CHÚ / LŨY KẾ (THU GỌN ĐƯỢC) ===== -->
     <div class="detail-panel collapsed" id="infoDetailPanel">
         <div class="info-row">
             <div class="field">
@@ -945,15 +943,21 @@
                     <option value="het">📦 Thu hết</option>
                 </select>
             </div>
+            <div class="field">
+                <label id="typeLabel">🔄 Sang tôm</label>
+                <div id="typeTotal" style="width:100%;box-sizing:border-box;padding:8px 10px;border:1px solid #e2e8f0;border-radius:8px;font-size:15px;font-weight:800;color:#2563eb;background:#f8fafc;text-align:center;">0.0 kg</div>
+            </div>
+        </div>
+        <div class="info-row" style="align-items:flex-end;flex-wrap:nowrap;">
             <div class="field" style="flex:2;">
                 <label>📝 Ghi chú</label>
                 <input type="text" id="noteInput" placeholder="Ghi chú...">
             </div>
-        </div>
-        <div class="cumulative-toggle" onclick="toggleCumulative()" style="width:fit-content;">
-            <input type="checkbox" id="cumulativeToggle">
-            <label for="cumulativeToggle">Lũy kế</label>
-            <span class="badge" id="cumulativeBadge">OFF</span>
+            <div class="cumulative-toggle" onclick="toggleCumulative()" style="width:fit-content;flex-shrink:0;margin-bottom:2px;">
+                <input type="checkbox" id="cumulativeToggle">
+                <label for="cumulativeToggle">Lũy kế</label>
+                <span class="badge" id="cumulativeBadge">OFF</span>
+            </div>
         </div>
     </div>
 
@@ -965,27 +969,7 @@
         <button class="tab-picker-btn" onclick="openTabPicker()">
             📑<span id="tabPositionLabel">1/1</span>
         </button>
-    </div>
-
-    <!-- ===== THANH CÀI ĐẶT TAB / TỰ ĐỘNG ===== -->
-    <div class="tab-settings-bar flex-shrink-0" id="tabSettingsBar">
-        <button class="tab-btn primary" onclick="addTab()">➕</button>
-        <button class="tab-btn danger" onclick="removeTab()">➖</button>
-        <div class="tab-setting">
-            <label>Cột/tab</label>
-            <input type="number" id="colsPerTabInput" value="5" min="1" max="10" onchange="updateColsPerTab()">
-        </div>
-        <!-- ===== AUTO DECIMAL TOGGLE ===== -->
-        <div class="auto-decimal-toggle">
-            <input type="checkbox" id="autoDecimalToggle" onchange="toggleAutoDecimal()">
-            <label for="autoDecimalToggle">🔢 Tự động</label>
-            <span class="badge off" id="autoDecimalBadge">OFF</span>
-            <div class="decimal-places-setting">
-                <input type="number" id="decimalPlacesInput" value="1" min="1" max="3" onchange="updateDecimalPlaces()" title="Số chữ số thập phân, vd: 2 → gõ 1275 ra 12.75">
-                <span>lẻ</span>
-            </div>
-        </div>
-        <div class="spacer"></div>
+        <button class="tab-nav-arrow" onclick="openTabSettings()" title="Cài đặt tab">⚙️</button>
     </div>
 
     <!-- ===== BẢNG ===== -->
@@ -1000,19 +984,29 @@
     <!-- ===== TOOLBAR ===== -->
     <div class="toolbar-row flex-shrink-0">
         <button class="toggle-numpad-btn" id="toggleNumpadBtn" onclick="toggleNumpad()">⌨️</button>
-        <div class="spacer"></div>
-        <button class="btn" style="flex:0.8;background:#f59e0b;color:#fff;font-weight:700;" onclick="openMoneyCalc()">💰 Tính tiền</button>
-        <button class="btn btn-success" onclick="addRow()" style="flex:0.6;">➕ Dòng</button>
-        <button class="btn btn-danger" onclick="removeRow()" style="flex:0.6;">➖ Dòng</button>
-        <button class="btn btn-primary" onclick="addColumn()" style="flex:0.6;">➕ Cột</button>
-        <button class="btn btn-danger" onclick="removeColumn()" style="flex:0.6;">➖ Cột</button>
+        <button class="btn btn-success" onclick="addRow()" style="flex:0.55;">➕</button>
+        <button class="btn btn-danger" onclick="removeRow()" style="flex:0.55;">➖</button>
+        <button class="btn" style="flex:0.8;background:#f59e0b;color:#fff;font-weight:700;" onclick="openMoneyCalc()">💰</button>
+        <button class="btn btn-info" style="flex:1.1;" onclick="showSaveOptions()">💾 Lưu</button>
+        <button class="btn btn-secondary" style="flex:0.6;" onclick="openMoreActions()">⋯</button>
     </div>
-    <div class="btn-row flex-shrink-0">
-        <button class="btn btn-info" onclick="showSaveOptions()">💾 Lưu</button>
-        <button class="btn btn-success" onclick="exportExcelReal()">📊 CSV</button>
-        <button class="btn btn-secondary" onclick="exportJSON()">🗂️ Sao lưu</button>
-        <button class="btn btn-secondary" onclick="loadData()">📥 Khôi phục</button>
-        <button class="btn btn-danger" onclick="resetAll()">🔄 Reset</button>
+
+    <!-- ===== THÊM THAO TÁC (ÍT DÙNG) OVERLAY ===== -->
+    <div class="menu-overlay" id="moreActionsOverlay" onclick="closeMoreActionsOutside(event)">
+        <div class="menu-panel" onclick="event.stopPropagation()" style="max-width:380px;">
+            <div class="menu-header">
+                <h2>⋯ Thêm thao tác</h2>
+                <button class="close-btn" onclick="closeMoreActions()">✕</button>
+            </div>
+            <div class="btn-row" style="flex-wrap:wrap;">
+                <button class="btn btn-primary" style="flex:0.48;min-width:100px;" onclick="addColumn()">➕ Cột</button>
+                <button class="btn btn-danger" style="flex:0.48;min-width:100px;" onclick="removeColumn()">➖ Cột</button>
+                <button class="btn btn-success" style="flex:0.48;min-width:100px;" onclick="exportExcelReal()">📊 CSV</button>
+                <button class="btn btn-secondary" style="flex:0.48;min-width:100px;" onclick="exportJSON()">🗂️ Sao lưu</button>
+                <button class="btn btn-secondary" style="flex:0.48;min-width:100px;" onclick="loadData()">📥 Khôi phục</button>
+                <button class="btn btn-danger" style="flex:0.48;min-width:100px;" onclick="resetAll()">🔄 Reset</button>
+            </div>
+        </div>
     </div>
 
     <!-- ===== BÀN PHÍM SỐ ===== -->
@@ -1071,6 +1065,35 @@
         <div class="menu-footer">
             <button class="btn btn-secondary" onclick="exportAllData()">📦 Xuất tất cả</button>
             <button class="btn btn-danger" onclick="clearAllHistory()">🗑️ Xóa hết</button>
+        </div>
+    </div>
+</div>
+
+<!-- ===== CÀI ĐẶT TAB OVERLAY ===== -->
+<div class="menu-overlay" id="tabSettingsOverlay" onclick="closeTabSettingsOutside(event)">
+    <div class="menu-panel" onclick="event.stopPropagation()" style="max-width:380px;">
+        <div class="menu-header">
+            <h2>⚙️ Cài đặt tab</h2>
+            <button class="close-btn" onclick="closeTabSettings()">✕</button>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:14px;padding:4px 2px;">
+            <div style="display:flex;gap:8px;">
+                <button class="tab-btn primary" style="flex:1;" onclick="addTab()">➕ Thêm tab</button>
+                <button class="tab-btn danger" style="flex:1;" onclick="removeTab()">➖ Bớt tab</button>
+            </div>
+            <div class="tab-setting" style="justify-content:space-between;">
+                <label>Số cột / tab</label>
+                <input type="number" id="colsPerTabInput" value="5" min="1" max="10" onchange="updateColsPerTab()">
+            </div>
+            <div class="auto-decimal-toggle" style="flex-wrap:wrap;">
+                <input type="checkbox" id="autoDecimalToggle" onchange="toggleAutoDecimal()">
+                <label for="autoDecimalToggle">🔢 Tự động thêm số lẻ</label>
+                <span class="badge off" id="autoDecimalBadge">OFF</span>
+                <div class="decimal-places-setting">
+                    <input type="number" id="decimalPlacesInput" value="1" min="1" max="3" onchange="updateDecimalPlaces()" title="Số chữ số thập phân, vd: 2 → gõ 1275 ra 12.75">
+                    <span>lẻ</span>
+                </div>
+            </div>
         </div>
     </div>
 </div>
@@ -1200,7 +1223,7 @@ if ('serviceWorker' in navigator) {
 // ===== STATE =====
 let gridData = [];
 let cols = 5;
-let rows = 5;
+let rows = 10;
 let selectedIndex = 0;
 let allRecords = [];
 let currentRecordId = null;
@@ -1267,8 +1290,10 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 
 function updateClock() {
+    const el = document.getElementById('currentTime');
+    if (!el) return;
     const now = new Date();
-    document.getElementById('currentTime').textContent =
+    el.textContent =
         now.toLocaleDateString('vi-VN') + ' ' + now.toLocaleTimeString('vi-VN', {hour:'2-digit', minute:'2-digit'});
 }
 
@@ -1359,6 +1384,7 @@ function expandInfoDetail() {
     if (arrow) arrow.classList.add('open');
     localStorage.setItem('toggle_infoDetailPanel', 'expanded');
     collapseNumpad();
+    setTimeout(fitTableRows, 320);
 }
 
 function collapseInfoDetail() {
@@ -1368,6 +1394,7 @@ function collapseInfoDetail() {
     panel.classList.remove('expanded');
     if (arrow) arrow.classList.remove('open');
     localStorage.setItem('toggle_infoDetailPanel', 'collapsed');
+    setTimeout(fitTableRows, 320);
 }
 
 function loadToggleStates() {
@@ -1397,6 +1424,7 @@ function expandNumpad() {
     btn.classList.remove('hide');
     localStorage.setItem('numpad_collapsed', 'false');
     collapseInfoDetail();
+    setTimeout(fitTableRows, 320);
 }
 
 function collapseNumpad() {
@@ -1405,6 +1433,7 @@ function collapseNumpad() {
     wrapper.classList.add('collapsed');
     btn.classList.add('hide');
     localStorage.setItem('numpad_collapsed', 'true');
+    setTimeout(fitTableRows, 320);
 }
 
 function loadNumpadState() {
@@ -1724,6 +1753,26 @@ function closeMoneyCalcOutside(e) {
     if (e.target === e.currentTarget) closeMoneyCalc();
 }
 
+function openTabSettings() {
+    document.getElementById('tabSettingsOverlay').classList.add('show');
+}
+function closeTabSettings() {
+    document.getElementById('tabSettingsOverlay').classList.remove('show');
+}
+function closeTabSettingsOutside(e) {
+    if (e.target === e.currentTarget) closeTabSettings();
+}
+
+function openMoreActions() {
+    document.getElementById('moreActionsOverlay').classList.add('show');
+}
+function closeMoreActions() {
+    document.getElementById('moreActionsOverlay').classList.remove('show');
+}
+function closeMoreActionsOutside(e) {
+    if (e.target === e.currentTarget) closeMoreActions();
+}
+
 function updateMoneyResult() {
     const kg = parseFloat(document.getElementById('moneyKgInput').value) || 0;
     const price = parseFloat(document.getElementById('moneyPriceInput').value) || 0;
@@ -1954,7 +2003,42 @@ function renderTable() {
     });
 
     setTimeout(() => focusCell(selectedIndex), 50);
+    fitTableRows();
 }
+
+// ===== TỰ ĐỘNG CO GIÃN CHIỀU CAO DÒNG =====
+// Tính chiều cao mỗi dòng dựa trên chiều cao thực tế còn lại của khung bảng,
+// để luôn hiện đủ số dòng hiện có mà KHÔNG cần cuộn, trên mọi kích thước màn hình.
+function fitTableRows() {
+    const wrapper = document.getElementById('tableWrapper');
+    if (!wrapper) return;
+    const availableHeight = wrapper.clientHeight;
+    if (availableHeight <= 0) return;
+
+    const totalRowSlots = rows + 2; // 1 dòng tiêu đề + N dòng dữ liệu + 1 dòng tổng
+    let rowHeight = Math.floor(availableHeight / totalRowSlots);
+    rowHeight = Math.max(28, Math.min(rowHeight, 74));
+
+    const cellFont = Math.max(17, Math.min(34, Math.round(rowHeight * 0.6)));
+    const totalFont = Math.max(19, Math.min(36, Math.round(rowHeight * 0.64)));
+    const headFont = Math.max(11, Math.min(14, Math.round(rowHeight * 0.24)));
+    const headPad = Math.max(2, Math.round(rowHeight * 0.14));
+
+    let styleTag = document.getElementById('dynamicRowStyle');
+    if (!styleTag) {
+        styleTag = document.createElement('style');
+        styleTag.id = 'dynamicRowStyle';
+        document.head.appendChild(styleTag);
+    }
+    styleTag.textContent =
+        '.data-table th{padding:' + headPad + 'px 4px;font-size:' + headFont + 'px;}' +
+        '.data-table td{padding:0;height:' + rowHeight + 'px;}' +
+        '.data-table td input{font-size:' + cellFont + 'px;padding:0;}' +
+        '.data-table .total-row td input{font-size:' + totalFont + 'px;}';
+}
+
+window.addEventListener('resize', fitTableRows);
+window.addEventListener('orientationchange', () => setTimeout(fitTableRows, 350));
 
 function updateActiveCell() {
     document.querySelectorAll('.cell-input').forEach(inp => {
