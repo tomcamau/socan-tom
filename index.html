@@ -3,8 +3,8 @@
 <!-- BUILD-MARKER: socan-tom-v10-2026-08-04 (dùng để kiểm tra đã deploy đúng bản mới chưa) -->
 <head>
      <!-- ===== THÊM 2 DÒNG NÀY ===== -->
-    <link rel="manifest" href="/socan_tom/manifest.json">
-    <link rel="apple-touch-icon" href="/socan_tom/icon-192.png">
+    <link rel="manifest" href="manifest.json">
+    <link rel="apple-touch-icon" href="icon-192.png">
     <!-- ===== KẾT THÚC ===== -->
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
@@ -909,6 +909,17 @@
             .summary-bar-item.total .value { font-size: 15px; }
             .summary-bar-item .label { font-size: 9px; }
         }
+
+        .sample-form { display:flex; flex-direction:column; gap:10px; padding:4px 2px 0; }
+        .sample-field { display:flex; flex-direction:column; gap:5px; }
+        .sample-field label { font-size:13px; font-weight:700; color:#475569; }
+        .sample-field input { width:100%; box-sizing:border-box; padding:11px 12px; border:1.5px solid #cbd5e1; border-radius:10px; font-size:17px; font-weight:800; color:#1e293b; outline:none; }
+        .sample-field input:focus { border-color:#2563eb; box-shadow:0 0 0 3px rgba(37,99,235,.12); }
+        .sample-net { display:flex; justify-content:space-between; align-items:center; padding:9px 11px; background:#eff6ff; border:1px solid #bfdbfe; border-radius:10px; color:#1e40af; font-size:13px; font-weight:700; }
+        .sample-result { margin-top:2px; padding:15px 12px; background:linear-gradient(135deg,#ecfdf5,#d1fae5); border:2px solid #22c55e; border-radius:14px; text-align:center; }
+        .sample-result-label { font-size:12px; color:#166534; font-weight:800; letter-spacing:.4px; }
+        .sample-result-value { margin-top:3px; font-size:28px; line-height:1.1; font-weight:900; color:#15803d; }
+        .sample-example { margin-top:10px; padding:9px 10px; background:#fff7ed; border:1px dashed #fb923c; border-radius:10px; color:#9a3412; font-size:12px; line-height:1.5; }
     </style>
 </head>
 <body>
@@ -920,7 +931,7 @@
             <span class="title">🦐 Sổ cân</span>
             <button class="menu-btn" onclick="event.stopPropagation();toggleMenu()">📋</button>
             <button class="menu-btn" onclick="event.stopPropagation();showPinTip()" title="Ghim ra màn hình chính">📌</button>
-            <button class="menu-btn" id="micBtn" onclick="event.stopPropagation();toggleVoiceInput()" title="Ghi giọng nói">🎙️</button>
+            <button class="menu-btn" id="sampleCalcBtn" aria-label="Cân mẫu" onclick="event.stopPropagation();openSampleCalc()" title="Cân mẫu">⚖️</button>
         </div>
         <div style="display:flex;align-items:center;gap:6px;">
             <span id="basketCountBadge" style="font-size:11px;background:#e2e8f0;color:#334155;padding:2px 6px;border-radius:6px;font-weight:700;" title="Tổng số rổ đã cân">🧺 <span id="totalBaskets">0</span> rổ</span>
@@ -1137,6 +1148,41 @@
     </div>
 </div>
 
+
+<!-- ===== CÂN MẪU OVERLAY ===== -->
+<div class="menu-overlay" id="sampleCalcOverlay" onclick="closeSampleCalcOutside(event)">
+    <div class="menu-panel" onclick="event.stopPropagation()" style="max-width:380px;">
+        <div class="menu-header">
+            <h2>⚖️ Cân mẫu</h2>
+            <button class="close-btn" onclick="closeSampleCalc()">✕</button>
+        </div>
+        <div class="sample-form">
+            <div class="sample-field">
+                <label for="sampleCountInput">🦐 Số tôm (con)</label>
+                <input type="number" id="sampleCountInput" inputmode="numeric" min="0" step="1" placeholder="Ví dụ: 200" oninput="updateSampleResult()">
+            </div>
+            <div class="sample-field">
+                <label for="sampleGrossKgInput">⚖️ Tổng cân cả rổ và tôm (kg)</label>
+                <input type="number" id="sampleGrossKgInput" inputmode="decimal" min="0" step="0.1" placeholder="Ví dụ: 10" oninput="updateSampleResult()">
+            </div>
+            <div class="sample-field">
+                <label for="sampleTareKgInput">🧺 Bì (kg)</label>
+                <input type="number" id="sampleTareKgInput" inputmode="decimal" min="0" step="0.1" value="0" oninput="updateSampleResult()">
+            </div>
+            <div class="sample-net">
+                <span>🐟 Khối lượng tôm thực tế</span>
+                <strong id="sampleNetKg">0.0 kg</strong>
+            </div>
+            <div class="sample-result">
+                <div class="sample-result-label">KẾT QUẢ TRUNG BÌNH</div>
+                <div class="sample-result-value" id="sampleResult">— con/kg</div>
+            </div>
+            <div class="sample-example">Ví dụ: 200 con ÷ (10 kg − 0,5 kg bì) = <b>21,05 con/kg</b>.</div>
+        </div>
+        <button class="btn btn-primary" style="margin-top:12px;" onclick="closeSampleCalc()">Đóng</button>
+    </div>
+</div>
+
 <!-- ===== GHIM RA MÀN HÌNH CHÍNH ===== -->
 <div class="menu-overlay" id="pinOverlay">
     <div class="menu-panel" onclick="event.stopPropagation()" style="max-height:70vh;">
@@ -1145,7 +1191,7 @@
             <button class="close-btn" onclick="closePinTip()">✕</button>
         </div>
         <div style="font-size:13.5px;color:#475569;line-height:1.7;padding:4px 2px;overflow-y:auto;max-height:52vh;">
-            <p id="pinIntro" style="margin-bottom:10px;">Dữ liệu ao của bạn lưu trong <b>đúng bản trình duyệt đang mở</b>. Nếu mỗi lần bạn tải lại file hoặc mở bằng app khác, dữ liệu sẽ không thấy. Ghim ra màn hình chính để luôn mở lại đúng 1 bản này:</p>
+            <p id="pinIntro" style="margin-bottom:10px;">Sổ cân này chạy offline trên điện thoại của bạn; dữ liệu được lưu ngay trên trình duyệt của điện thoại và không gửi lên máy chủ khi dùng offline nên không lo lộ lọt dữ liệu. Hãy sao lưu định kỳ để tránh mất dữ liệu nếu xóa dữ liệu trình duyệt hoặc đổi điện thoại. Hướng dẫn cài đặt: <a href="https://youtu.be/m-ObESgeuOA?si=fRoOq6I-JpLlaUFG" target="_blank" rel="noopener noreferrer" style="color:#2563eb;font-weight:800;text-decoration:underline;">xem video hướng dẫn trên YouTube</a>.</p>
             <p id="pinTipIOS" style="display:none;">
                 <b>📱 iPhone (Safari):</b><br>
                 1. Bấm nút Chia sẻ <b>⬆️</b> ở thanh dưới<br>
@@ -1219,7 +1265,7 @@ window.addEventListener('load', function() {
 // ===== ĐĂNG KÝ SERVICE WORKER (để app dùng được khi offline) =====
 if ('serviceWorker' in navigator) {
     window.addEventListener('load', function() {
-        navigator.serviceWorker.register('/socan_tom/sw.js')
+        navigator.serviceWorker.register('./sw.js')
             .then(reg => {
                 console.log('✅ Service Worker đã đăng ký:', reg.scope);
                 // Chủ động kiểm tra bản Service Worker mới mỗi lần mở app,
@@ -2036,7 +2082,7 @@ function fitTableRows() {
     rowHeight = Math.max(28, Math.min(rowHeight, 74));
 
     const cellFont = Math.max(17, Math.min(34, Math.round(rowHeight * 0.6)));
-    const totalFont = Math.max(19, Math.min(36, Math.round(rowHeight * 0.64)));
+    const totalFont = Math.max(cellFont + 1, Math.min(35, Math.round(rowHeight * 0.54)));
     const headFont = Math.max(11, Math.min(14, Math.round(rowHeight * 0.24)));
     const headPad = Math.max(2, Math.round(rowHeight * 0.14));
 
@@ -2050,7 +2096,25 @@ function fitTableRows() {
         '.data-table th{padding:' + headPad + 'px 4px;font-size:' + headFont + 'px;}' +
         '.data-table td{padding:0;height:' + rowHeight + 'px;}' +
         '.data-table td input{font-size:' + cellFont + 'px;padding:0;}' +
-        '.data-table .total-row td input{font-size:' + totalFont + 'px;}';
+        '.data-table .total-row td input{font-size:' + totalFont + 'px;letter-spacing:-0.35px;}';
+
+    document.querySelectorAll('.data-table .total-row td input').forEach(input => {
+        input.style.transform = 'none';
+        const canvas = document.createElement('canvas');
+        const ctx = canvas.getContext('2d');
+        if (!ctx) return;
+        const computed = getComputedStyle(input);
+        ctx.font = computed.font;
+        const text = input.value || '';
+        const spacing = parseFloat(computed.letterSpacing) || 0;
+        const textWidth = ctx.measureText(text).width + Math.max(0, text.length - 1) * spacing;
+        const available = input.clientWidth - 6;
+        if (textWidth > available && available > 0) {
+            const scale = Math.max(0.82, available / textWidth);
+            input.style.transform = 'scaleX(' + scale.toFixed(3) + ')';
+            input.style.transformOrigin = 'center center';
+        }
+    });
 }
 
 window.addEventListener('resize', fitTableRows);
@@ -2604,132 +2668,40 @@ document.addEventListener('keydown', function(e) {
 </script>
 
 <script>
-let recognition = null;
-let isVoiceActive = false;
+// ===== CÂN MẪU =====
+function openSampleCalc() {
+    document.getElementById('sampleCalcOverlay').classList.add('show');
+    updateSampleResult();
+    setTimeout(function() {
+        const count = document.getElementById('sampleCountInput');
+        if (count) count.focus();
+    }, 80);
+}
 
-function toggleVoiceInput() {
-    if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) {
-        alert("Trình duyệt không hỗ trợ nhận diện giọng nói!");
+function closeSampleCalc() {
+    document.getElementById('sampleCalcOverlay').classList.remove('show');
+}
+
+function closeSampleCalcOutside(event) {
+    if (event.target === event.currentTarget) closeSampleCalc();
+}
+
+function updateSampleResult() {
+    const count = parseFloat(document.getElementById('sampleCountInput').value);
+    const gross = parseFloat(document.getElementById('sampleGrossKgInput').value);
+    const tare = parseFloat(document.getElementById('sampleTareKgInput').value) || 0;
+    const net = gross - tare;
+    const netEl = document.getElementById('sampleNetKg');
+    const resultEl = document.getElementById('sampleResult');
+
+    netEl.textContent = Number.isFinite(net) && net >= 0 ? net.toFixed(1) + ' kg' : '0.0 kg';
+    if (!Number.isFinite(count) || count <= 0 || !Number.isFinite(gross) || gross <= 0 || tare < 0 || net <= 0) {
+        resultEl.textContent = '— con/kg';
         return;
     }
-    
-    if (isVoiceActive) {
-        stopVoiceInput();
-    } else {
-        startVoiceInput();
-    }
-}
-
-function startVoiceInput() {
-    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-    recognition = new SpeechRecognition();
-    recognition.lang = "vi-VN";
-    recognition.continuous = true;
-    recognition.interimResults = false;
-
-    recognition.onstart = () => {
-        isVoiceActive = true;
-        updateMicBtnState(true);
-    };
-
-    recognition.onresult = (event) => {
-        const lastResult = event.results[event.results.length - 1];
-        if (!lastResult.isFinal) return;
-        
-        const text = lastResult[0].transcript.toLowerCase().trim();
-        console.log("Voice recognized:", text);
-
-        if (text.includes("xóa") || text.includes("hủy")) {
-            const input = document.querySelector(`.cell-input[data-index="${selectedIndex}"]`);
-            if (input) {
-                input.value = "";
-                updateDataFromInput(input);
-            }
-            return;
-        }
-        
-        if (text.includes("quay lại") || text.includes("lên")) {
-            if (typeof currentRow !== "undefined" && currentRow > 0) {
-                currentRow--;
-                renderTable();
-            }
-            return;
-        }
-
-        // Trích xuất con số từ câu nói
-        const num = parseSpokenNumber(text);
-        if (num !== null && !isNaN(num) && num > 0) {
-            const input = document.querySelector(`.cell-input[data-index="${selectedIndex}"]`);
-            if (input) {
-                input.value = num.toFixed(1);
-                updateDataFromInput(input);
-                // Đã ghi thành công số vào ô, gọi enterValue để tự động xuống dòng chuẩn xác của file gốc
-                setTimeout(() => {
-                    if (typeof enterValue === "function") enterValue();
-                }, 100);
-            }
-        }
-    };
-
-    recognition.onerror = (e) => {
-        console.warn("Speech recognition error:", e);
-    };
-
-    recognition.onend = () => {
-        if (isVoiceActive) {
-            try {
-                recognition.start();
-            } catch(err) {
-                isVoiceActive = false;
-                updateMicBtnState(false);
-            }
-        } else {
-            updateMicBtnState(false);
-        }
-    };
-
-    try {
-        recognition.start();
-    } catch(err) {
-        console.error(err);
-        isVoiceActive = false;
-        updateMicBtnState(false);
-    }
-}
-
-function stopVoiceInput() {
-    isVoiceActive = false;
-    if (recognition) {
-        try { recognition.stop(); } catch(e){}
-    }
-    updateMicBtnState(false);
-}
-
-function parseSpokenNumber(str) {
-    const clean = str.replace(/phẩy/g, ".").replace(/chấm/g, ".");
-    const match = clean.match(/[0-9]+(\.[0-9]+)?/);
-    if (match) {
-        return parseFloat(match[0]);
-    }
-    return null;
-}
-
-function updateMicBtnState(recording) {
-    const btn = document.getElementById("micBtn");
-    if (!btn) return;
-    if (recording) {
-        btn.style.background = "#ef4444";
-        btn.style.color = "#ffffff";
-        btn.style.borderRadius = "50%";
-        btn.style.boxShadow = "0 0 8px rgba(239,68,68,0.8)";
-    } else {
-        btn.style.background = "";
-        btn.style.color = "";
-        btn.style.boxShadow = "";
-    }
+    const countPerKg = count / net;
+    resultEl.textContent = countPerKg.toFixed(2) + ' con/kg';
 }
 </script>
 </body>
-</html>
-
 </html>
