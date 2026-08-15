@@ -920,6 +920,7 @@
             <span class="title">🦐 Sổ cân</span>
             <button class="menu-btn" onclick="event.stopPropagation();toggleMenu()">📋</button>
             <button class="menu-btn" onclick="event.stopPropagation();showPinTip()" title="Ghim ra màn hình chính">📌</button>
+            <button class="menu-btn" id="micBtn" onclick="event.stopPropagation();toggleVoiceInput()" title="Ghi giọng nói">🎙️</button>
         </div>
         <div style="display:flex;align-items:center;gap:6px;">
             <span id="basketCountBadge" style="font-size:11px;background:#e2e8f0;color:#334155;padding:2px 6px;border-radius:6px;font-weight:700;" title="Tổng số rổ đã cân">🧺 <span id="totalBaskets">0</span> rổ</span>
@@ -1101,7 +1102,7 @@
                 <label for="fixedWeightToggle">🎯 Cố định số cân (Mã cân)</label>
                 <span class="badge off" id="fixedWeightBadge">OFF</span>
                 <div class="decimal-places-setting" style="display:flex;align-items:center;gap:3px;margin-left:auto;">
-                    <input type="number" id="fixedWeightInput" value="5.0" step="0.1" min="0" style="width:55px;font-size:12px;text-align:center;" onchange="updateFixedWeightValue()" title="Trọng lượng cố định mỗi rổ, vd: 5.0"> <button id="micBtn" onclick="toggleVoiceInput()" title="Bật/Tắt ghi giọng nói" style="background:#28a745;color:white;border:none;border-radius:4px;padding:3px 6px;cursor:pointer;margin-left:6px;font-size:13px;vertical-align:middle;">🎙️</button> <button id="micBtn" onclick="toggleVoiceInput()" title="Ghi giọng nói" style="background:#28a745;color:white;border:none;border-radius:4px;padding:4px 8px;cursor:pointer;margin-left:4px;font-size:14px;">🎙️</button>
+                    <input type="number" id="fixedWeightInput" value="5.0" step="0.1" min="0" style="width:55px;font-size:12px;text-align:center;" onchange="updateFixedWeightValue()" title="Trọng lượng cố định mỗi rổ, vd: 5.0">
                     <span style="font-size:11px;color:#64748b;">kg</span>
                 </div>
             </div>
@@ -2624,163 +2625,7 @@ function startVoiceInput() {
     recognition = new SpeechRecognition();
     recognition.lang = "vi-VN";
     recognition.continuous = true;
-    recognition.interimResults = true; // Bật interim để nhận kết quả tức thì ngay khi nói
-
-    recognition.onstart = () => {
-        isVoiceActive = true;
-        updateMicBtnState(true);
-        playBeep(600, 80);
-    };
-
-    recognition.onresult = (event) => {
-        for (let i = event.resultIndex; i < event.results.length; ++i) {
-            const transcript = event.results[i][0].transcript.toLowerCase().trim();
-            // Xử lý ngay cả khi kết quả là tạm thời (interim) nếu đã khớp số rõ ràng để tăng tốc độ tối đa
-            processVoiceText(transcript, event.results[i].isFinal);
-        }
-    };
-
-    recognition.onerror = (e) => {
-        console.warn("Speech error", e);
-    };
-
-    recognition.onend = () => {
-        // Tự động khởi động lại nếu người dùng chưa tắt thủ công để cân liên tục không gián đoạn
-        if (isVoiceActive) {
-            try {
-                recognition.start();
-            } catch(err) {
-                isVoiceActive = false;
-                updateMicBtnState(false);
-            }
-        } else {
-            updateMicBtnState(false);
-        }
-    };
-
-    try {
-        recognition.start();
-    } catch(err) {
-        console.error(err);
-        isVoiceActive = false;
-        updateMicBtnState(false);
-    }
-}
-
-function stopVoiceInput() {
-    isVoiceActive = false;
-    if (recognition) {
-        try { recognition.stop(); } catch(e){}
-    }
-    updateMicBtnState(false);
-}
-
-let lastProcessedTranscript = "";
-
-function processVoiceText(text, isFinal) {
-    // Tránh xử lý lặp lại cùng một chuỗi tạm thời
-    if (text === lastProcessedTranscript) return;
-    
-    console.log("Voice:", text, "Final:", isFinal);
-
-    if (text.includes("xóa") || text.includes("hủy")) {
-        lastProcessedTranscript = text;
-        if (typeof currentCell !== "undefined" && currentCell) {
-            currentCell.value = "";
-            if (typeof updateDataFromInput === "function") updateDataFromInput();
-        }
-        playBeep(400, 100);
-        return;
-    }
-    
-    if (text.includes("quay lại") || text.includes("lên")) {
-        lastProcessedTranscript = text;
-        if (typeof currentRow !== "undefined" && currentRow > 0) {
-            currentRow--;
-            if (typeof renderTable === "function") renderTable();
-        }
-        playBeep(500, 100);
-        return;
-    }
-
-    // Chuyển đổi chữ số tiếng Việt / số đọc thành số thực
-    const clean = text.replace(/phẩy/g, ".").replace(/chấm/g, ".");
-    const match = clean.match(/[0-9]+(\.[0-9]+)?/);
-    
-    if (match) {
-        const numStr = match[0];
-        // Nếu là kết quả final hoặc chuỗi số đã đủ nghĩa (ví dụ đọc xong số)
-        if (isFinal || numStr.length >= 1) {
-            lastProcessedTranscript = text;
-            if (typeof currentCell !== "undefined" && currentCell) {
-                currentCell.value = numStr;
-                if (typeof updateDataFromInput === "function") updateDataFromInput();
-            }
-            playBeep(880, 120);
-            
-            // Tự động xuống dòng ngay lập tức
-            setTimeout(() => {
-                if (typeof enterValue === "function") {
-                    enterValue();
-                } else if (typeof nextRow === "function") {
-                    nextRow();
-                }
-            }, 100);
-        }
-    }
-}
-
-function updateMicBtnState(recording) {
-    const btn = document.getElementById("micBtn");
-    if (!btn) return;
-    if (recording) {
-        btn.style.background = "#dc3545";
-        btn.innerText = "🔴 Đang nghe (Bật)";
-    } else {
-        btn.style.background = "#28a745";
-        btn.innerText = "🎙️";
-    }
-}
-
-function playBeep(freq, duration) {
-    try {
-        const ctx = new (window.AudioContext || window.webkitAudioContext)();
-        const osc = ctx.createOscillator();
-        const gain = ctx.createGain();
-        osc.type = "sine";
-        osc.frequency.value = freq;
-        gain.gain.setValueAtTime(0.08, ctx.currentTime);
-        osc.connect(gain);
-        gain.connect(ctx.destination);
-        osc.start();
-        osc.stop(ctx.currentTime + (duration / 1000));
-    } catch(e) {}
-}
-</script>
-
-<script>
-let recognition = null;
-let isVoiceActive = false;
-
-function toggleVoiceInput() {
-    if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) {
-        alert("Trình duyệt không hỗ trợ nhận diện giọng nói!");
-        return;
-    }
-    
-    if (isVoiceActive) {
-        stopVoiceInput();
-    } else {
-        startVoiceInput();
-    }
-}
-
-function startVoiceInput() {
-    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-    recognition = new SpeechRecognition();
-    recognition.lang = "vi-VN";
-    recognition.continuous = true;
-    recognition.interimResults = false; // Chỉ lấy kết quả chính thức (isFinal) để tránh nhận nhầm câu chưa nói xong
+    recognition.interimResults = false; // Chỉ lấy kết quả chốt cuối cùng (isFinal)
 
     recognition.onstart = () => {
         isVoiceActive = true;
@@ -2790,7 +2635,7 @@ function startVoiceInput() {
 
     recognition.onresult = (event) => {
         const lastResult = event.results[event.results.length - 1];
-        if (!lastResult.isFinal) return; // Bắt buộc phải là kết quả chốt cuối cùng mới xử lý
+        if (!lastResult.isFinal) return;
         
         const text = lastResult[0].transcript.toLowerCase().trim();
         console.log("Voice Final:", text);
@@ -2813,36 +2658,27 @@ function startVoiceInput() {
             return;
         }
 
-        // Chuyển đổi từ đọc số tiếng Việt sang số thực
+        // Tìm số trong chuỗi giọng nói
         const num = parseSpokenNumber(text);
-        if (num !== null && !isNaN(num)) {
+        if (num !== null && !isNaN(num) && num > 0) {
+            // BẮT BUỘC: Phải điền số vào ô hiện tại trước
             if (typeof currentCell !== "undefined" && currentCell) {
                 currentCell.value = num;
                 if (typeof updateDataFromInput === "function") updateDataFromInput();
             }
             playBeep(880, 120);
             
-            // Tiến hành xuống dòng sau khi đã điền số thành công
+            // Sau khi đã chắc chắn điền số thành công, mới gọi xuống dòng sau 150ms
             setTimeout(() => {
                 if (typeof enterValue === "function") {
                     enterValue();
                 } else if (typeof nextRow === "function") {
                     nextRow();
                 }
-            }, 120);
+            }, 150);
         } else {
-            // Lọc ra các ký tự số
-            const digits = text.replace(/[^0-9\.,]/g, "").replace(",", ".");
-            if (digits) {
-                if (typeof currentCell !== "undefined" && currentCell) {
-                    currentCell.value = digits;
-                    if (typeof updateDataFromInput === "function") updateDataFromInput();
-                }
-                playBeep(880, 120);
-                setTimeout(() => {
-                    if (typeof enterValue === "function") enterValue();
-                }, 120);
-            }
+            // Nếu không nhận diện được số hợp lệ, TUYỆT ĐỐI KHÔNG xuống dòng, chỉ phát âm thanh cảnh báo ngắn
+            playBeep(300, 150);
         }
     };
 
@@ -2886,7 +2722,6 @@ function parseSpokenNumber(str) {
     if (match) {
         return parseFloat(match[0]);
     }
-    // Xử lý đọc chữ số cơ bản nếu cần
     return null;
 }
 
@@ -2894,11 +2729,14 @@ function updateMicBtnState(recording) {
     const btn = document.getElementById("micBtn");
     if (!btn) return;
     if (recording) {
-        btn.style.background = "#dc3545";
-        btn.innerText = "🔴 Đang nghe...";
+        btn.style.background = "#ef4444";
+        btn.style.color = "#ffffff";
+        btn.style.borderRadius = "50%";
+        btn.style.boxShadow = "0 0 8px rgba(239,68,68,0.8)";
     } else {
-        btn.style.background = "#28a745";
-        btn.innerText = "🎙️";
+        btn.style.background = "";
+        btn.style.color = "";
+        btn.style.boxShadow = "";
     }
 }
 
@@ -2918,8 +2756,6 @@ function playBeep(freq, duration) {
 }
 </script>
 </body>
-</html>
-
 </html>
 
 </html>
