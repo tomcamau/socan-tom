@@ -2625,12 +2625,11 @@ function startVoiceInput() {
     recognition = new SpeechRecognition();
     recognition.lang = "vi-VN";
     recognition.continuous = true;
-    recognition.interimResults = false; // Chỉ lấy kết quả chốt cuối cùng (isFinal)
+    recognition.interimResults = false;
 
     recognition.onstart = () => {
         isVoiceActive = true;
         updateMicBtnState(true);
-        playBeep(600, 80);
     };
 
     recognition.onresult = (event) => {
@@ -2638,52 +2637,42 @@ function startVoiceInput() {
         if (!lastResult.isFinal) return;
         
         const text = lastResult[0].transcript.toLowerCase().trim();
-        console.log("Voice Final:", text);
+        console.log("Voice recognized:", text);
 
         if (text.includes("xóa") || text.includes("hủy")) {
-            if (typeof currentCell !== "undefined" && currentCell) {
-                currentCell.value = "";
-                if (typeof updateDataFromInput === "function") updateDataFromInput();
+            const input = document.querySelector(`.cell-input[data-index="${selectedIndex}"]`);
+            if (input) {
+                input.value = "";
+                updateDataFromInput(input);
             }
-            playBeep(400, 100);
             return;
         }
         
         if (text.includes("quay lại") || text.includes("lên")) {
             if (typeof currentRow !== "undefined" && currentRow > 0) {
                 currentRow--;
-                if (typeof renderTable === "function") renderTable();
+                renderTable();
             }
-            playBeep(500, 100);
             return;
         }
 
-        // Tìm số trong chuỗi giọng nói
+        // Trích xuất con số từ câu nói
         const num = parseSpokenNumber(text);
         if (num !== null && !isNaN(num) && num > 0) {
-            // BẮT BUỘC: Phải điền số vào ô hiện tại trước
-            if (typeof currentCell !== "undefined" && currentCell) {
-                currentCell.value = num;
-                if (typeof updateDataFromInput === "function") updateDataFromInput();
+            const input = document.querySelector(`.cell-input[data-index="${selectedIndex}"]`);
+            if (input) {
+                input.value = num.toFixed(1);
+                updateDataFromInput(input);
+                // Đã ghi thành công số vào ô, gọi enterValue để tự động xuống dòng chuẩn xác của file gốc
+                setTimeout(() => {
+                    if (typeof enterValue === "function") enterValue();
+                }, 100);
             }
-            playBeep(880, 120);
-            
-            // Sau khi đã chắc chắn điền số thành công, mới gọi xuống dòng sau 150ms
-            setTimeout(() => {
-                if (typeof enterValue === "function") {
-                    enterValue();
-                } else if (typeof nextRow === "function") {
-                    nextRow();
-                }
-            }, 150);
-        } else {
-            // Nếu không nhận diện được số hợp lệ, TUYỆT ĐỐI KHÔNG xuống dòng, chỉ phát âm thanh cảnh báo ngắn
-            playBeep(300, 150);
         }
     };
 
     recognition.onerror = (e) => {
-        console.warn("Speech error", e);
+        console.warn("Speech recognition error:", e);
     };
 
     recognition.onend = () => {
@@ -2738,21 +2727,6 @@ function updateMicBtnState(recording) {
         btn.style.color = "";
         btn.style.boxShadow = "";
     }
-}
-
-function playBeep(freq, duration) {
-    try {
-        const ctx = new (window.AudioContext || window.webkitAudioContext)();
-        const osc = ctx.createOscillator();
-        const gain = ctx.createGain();
-        osc.type = "sine";
-        osc.frequency.value = freq;
-        gain.gain.setValueAtTime(0.08, ctx.currentTime);
-        osc.connect(gain);
-        gain.connect(ctx.destination);
-        osc.start();
-        osc.stop(ctx.currentTime + (duration / 1000));
-    } catch(e) {}
 }
 </script>
 </body>
