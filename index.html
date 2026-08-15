@@ -598,7 +598,6 @@
             align-items: center;
             gap: 6px;
             padding: 4px 10px;
-            background: #f1f5f9;
             border-radius: 10px;
             border: 1px solid #e2e8f0;
             cursor: pointer;
@@ -920,6 +919,10 @@
             <span class="title">🦐 Sổ cân</span>
             <button class="menu-btn" onclick="event.stopPropagation();toggleMenu()">📋</button>
             <button class="menu-btn" onclick="event.stopPropagation();showPinTip()" title="Ghim ra màn hình chính">📌</button>
+            <!-- Nút micro nhỏ gọn ngay cạnh nút ghim trên header -->
+            <button class="menu-btn" id="btnVoice" onclick="event.stopPropagation();toggleVoiceInput()" title="Bật/Tắt ghi giọng nói" style="background:#f1f5f9; border:1px solid #cbd5e1; padding:2px 6px; border-radius:8px;">
+                <span id="micIcon" style="font-size:14px;">🎙️</span>
+            </button>
         </div>
         <div style="display:flex;align-items:center;gap:6px;">
             <span id="basketCountBadge" style="font-size:11px;background:#e2e8f0;color:#334155;padding:2px 6px;border-radius:6px;font-weight:700;" title="Tổng số rổ đã cân">🧺 <span id="totalBaskets">0</span> rổ</span>
@@ -1118,1198 +1121,686 @@
         </div>
         <div style="padding:6px 4px 4px;">
             <label style="font-size:13px;font-weight:700;color:#475569;">Tổng số kg tôm</label>
-            <input type="number" id="moneyKgInput" inputmode="decimal" step="0.1"
-                style="width:100%;box-sizing:border-box;padding:12px;margin:6px 0 16px;border:1.5px solid #cbd5e1;border-radius:10px;font-size:17px;font-weight:800;color:#1e293b;"
-                oninput="updateMoneyResult()">
-
-            <label style="font-size:13px;font-weight:700;color:#475569;">Giá (đồng/kg)</label>
-            <input type="number" id="moneyPriceInput" inputmode="decimal" step="1000" placeholder="VD: 150000"
-                style="width:100%;box-sizing:border-box;padding:12px;margin:6px 0 16px;border:1.5px solid #cbd5e1;border-radius:10px;font-size:17px;font-weight:800;color:#1e293b;"
-                oninput="updateMoneyResult()">
-
-            <div style="background:#f0fdf4;border:2px solid #22c55e;border-radius:14px;padding:16px;text-align:center;margin-bottom:16px;">
-                <div style="font-size:12px;color:#166534;font-weight:700;letter-spacing:0.5px;margin-bottom:4px;">THÀNH TIỀN</div>
-                <div id="moneyResult" style="font-size:26px;font-weight:800;color:#15803d;">0 đ</div>
+            <input type="number" id="moneyTotalKg" class="menu-search" readonly style="background:#f1f5f9;font-weight:800;color:#ef4444;font-size:18px;">
+            
+            <label style="font-size:13px;font-weight:700;color:#475569;margin-top:8px;display:block;">Đơn giá (vnđ / 1 kg)</label>
+            <input type="number" id="moneyUnitPrice" class="menu-search" placeholder="VD: 120000" oninput="calculateMoney()" style="font-weight:800;font-size:18px;">
+            
+            <div style="background:#ecfdf5;border:1px solid #6ee7b7;border-radius:12px;padding:12px;text-align:center;margin-top:10px;">
+                <div style="font-size:11px;font-weight:700;color:#065f46;text-transform:uppercase;">Thành tiền</div>
+                <div id="moneyTotalResult" style="font-size:24px;font-weight:900;color:#059669;margin-top:2px;">0 đ</div>
             </div>
         </div>
-        <button class="btn btn-primary" onclick="saveMoneyCalc()">💾 Lưu vào lịch sử</button>
+        <div class="menu-footer">
+            <button class="btn btn-secondary" onclick="closeMoneyCalc()">Đóng</button>
+            <button class="btn btn-primary" onclick="saveMoneyResult()">💾 Lưu vào ghi chú</button>
+        </div>
     </div>
 </div>
 
-<!-- ===== GHIM RA MÀN HÌNH CHÍNH ===== -->
-<div class="menu-overlay" id="pinOverlay">
-    <div class="menu-panel" onclick="event.stopPropagation()" style="max-height:70vh;">
+<!-- ===== PIN TIP OVERLAY ===== -->
+<div class="menu-overlay" id="pinTipOverlay" onclick="closePinTipOutside(event)">
+    <div class="menu-panel" onclick="event.stopPropagation()" style="max-width:380px;">
         <div class="menu-header">
             <h2>📌 Ghim ra màn hình chính</h2>
             <button class="close-btn" onclick="closePinTip()">✕</button>
         </div>
-        <div style="font-size:13.5px;color:#475569;line-height:1.7;padding:4px 2px;overflow-y:auto;max-height:52vh;">
-            <p id="pinIntro" style="margin-bottom:10px;">Dữ liệu ao của bạn lưu trong <b>đúng bản trình duyệt đang mở</b>. Nếu mỗi lần bạn tải lại file hoặc mở bằng app khác, dữ liệu sẽ không thấy. Ghim ra màn hình chính để luôn mở lại đúng 1 bản này:</p>
-            <p id="pinTipIOS" style="display:none;">
-                <b>📱 iPhone (Safari):</b><br>
-                1. Bấm nút Chia sẻ <b>⬆️</b> ở thanh dưới<br>
-                2. Chọn <b>"Thêm vào MH chính"</b> (Add to Home Screen)<br>
-                3. Bấm <b>Thêm</b> — từ nay mở icon 🦐 này thay vì mở lại file
-            </p>
-            <p id="pinTipAndroid" style="display:none;">
-                <b>🤖 Android (Chrome):</b><br>
-                1. Bấm nút <b>⋮</b> (3 chấm) góc trên bên phải trình duyệt<br>
-                2. Chọn <b>"Thêm vào Màn hình chính"</b><br>
-                3. Bấm <b>Thêm</b> — từ nay mở icon 🦐 này thay vì mở lại file
-            </p>
-            <p id="pinTipOther" style="display:none;">
-                Mở menu trình duyệt (thường là biểu tượng ⋮ hoặc chia sẻ ⬆️) và tìm mục <b>"Thêm vào màn hình chính"</b>.
-            </p>
-            <div style="margin-top:14px;padding:12px 14px;background:linear-gradient(135deg,#fef3c7,#fde68a);border:2px dashed #d97706;border-radius:12px;text-align:center;">
-                <p style="font-size:14px;font-weight:700;color:#92400e;line-height:1.6;margin-bottom:8px;">☕ HÃY CÀI ĐẶT RA MÀN HÌNH ĐIỆN THOẠI ĐỂ SỬ DỤNG MƯỢT HƠN.</p>
-                <p style="font-size:16px;font-weight:800;color:#78350f;letter-spacing:0.5px;margin-bottom:2px;">0879.29.55.10</p>
-                <p style="font-size:13px;font-weight:700;color:#92400e;">PHẦN MỀM ĐƯỢC PHÁT TRIỂN BỞI TÔMSOFT</p>
+        <div style="font-size:13px;color:#334155;line-height:1.6;display:flex;flex-direction:column;gap:10px;padding:4px 0;">
+            <p>Để mở sổ cân nhanh như app cài sẵn trên điện thoại:</p>
+            <div style="background:#f1f5f9;padding:10px;border-radius:8px;">
+                <b>📱 Trên iPhone (Safari):</b>
+                <br>Bấm nút Chia sẻ (hình mũi tên lên) ở thanh dưới ➔ Chọn <b>"Thêm vào Màn hình chính"</b> (Add to Home Screen).
+            </div>
+            <div style="background:#f1f5f9;padding:10px;border-radius:8px;">
+                <b>🤖 Trên Android (Chrome):</b>
+                <br>Bấm nút 3 chấm ở góc trên bên phải ➔ Chọn <b>"Thêm vào màn hình chính"</b> hoặc <b>"Cài đặt ứng dụng"</b>.
             </div>
         </div>
-        <button class="btn btn-primary" style="margin-top:12px;" onclick="closePinTip()">Đã hiểu</button>
-    </div>
-</div>
-
-<!-- ===== CHỌN NHANH TAB ===== -->
-<div class="menu-overlay" id="tabPickerOverlay" onclick="closeTabPickerOutside(event)">
-    <div class="menu-panel" onclick="event.stopPropagation()" style="max-height:65vh;">
-        <div class="menu-header">
-            <h2>📑 Chọn tab</h2>
-            <button class="close-btn" onclick="closeTabPicker()">✕</button>
+        <div class="menu-footer" style="margin-top:16px;">
+            <button class="btn btn-primary" onclick="closePinTip()">Đã hiểu</button>
         </div>
-        <div class="tab-picker-grid" id="tabPickerGrid"></div>
     </div>
 </div>
 
 <script>
-// ===== GHIM MÀN HÌNH CHÍNH =====
-function detectPlatformForPinTip() {
-    const ua = navigator.userAgent || '';
-    const isIOS = /iPhone|iPad|iPod/.test(ua);
-    const isAndroid = /Android/.test(ua);
-    document.getElementById('pinTipIOS').style.display = isIOS ? 'block' : 'none';
-    document.getElementById('pinTipAndroid').style.display = isAndroid ? 'block' : 'none';
-    document.getElementById('pinTipOther').style.display = (!isIOS && !isAndroid) ? 'block' : 'none';
-}
-function isStandaloneApp() {
-    return window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true;
-}
-function showPinTip() {
-    const standalone = isStandaloneApp();
-    document.getElementById('pinIntro').style.display = standalone ? 'none' : 'block';
-    if (standalone) {
-        document.getElementById('pinTipIOS').style.display = 'none';
-        document.getElementById('pinTipAndroid').style.display = 'none';
-        document.getElementById('pinTipOther').style.display = 'none';
-    } else {
-        detectPlatformForPinTip();
-    }
-    document.getElementById('pinOverlay').classList.add('show');
-}
-function closePinTip() {
-    document.getElementById('pinOverlay').classList.remove('show');
-}
-window.addEventListener('load', function() {
-    setTimeout(showPinTip, 800);
-});
-</script>
+    // ===== STATE =====
+    let gridData = [];
+    let cols = 5;
+    let rows = 10;
+    let selectedIndex = 0;
+    let allRecords = [];
+    let currentRecordId = null;
+    let colsPerTab = 5;
+    let currentTab = 0;
+    let totalTabs = 1;
+    let selectedRecordIds = new Set();
+    let recordTotalsCache = {};
+    let recordMoneyCache = {};
+    let isCumulative = false;
+    let isAutoDecimal = false;
+    let decimalPlaces = 1;
+    let isFixedWeight = false;
+    let fixedWeightValue = 5.0;
 
-<script>
-// ===== ĐĂNG KÝ SERVICE WORKER (để app dùng được khi offline) =====
-if ('serviceWorker' in navigator) {
-    window.addEventListener('load', function() {
-        navigator.serviceWorker.register('/socan_tom/sw.js')
-            .then(reg => {
-                console.log('✅ Service Worker đã đăng ký:', reg.scope);
-                // Chủ động kiểm tra bản Service Worker mới mỗi lần mở app,
-                // để không bị kẹt lại bản cache cũ khi đã sửa/deploy code mới.
-                reg.update();
-            })
-            .catch(err => console.log('❌ Đăng ký Service Worker thất bại:', err));
-    });
-}
-</script>
+    // ===== VOICE INPUT STATE =====
+    let recognition = null;
+    let isListening = false;
 
-<script>
-// ===== STATE =====
-let gridData = [];
-let cols = 5;
-let rows = 10;
-let selectedIndex = 0;
-let allRecords = [];
-let currentRecordId = null;
-let colsPerTab = 5;
-let currentTab = 0;
-let totalTabs = 1;
-let selectedRecordIds = new Set();
-let recordTotalsCache = {};
-let recordMoneyCache = {};
-let isCumulative = false;
-let isAutoDecimal = false;
-let decimalPlaces = 1;
-let isFixedWeight = false;
-let fixedWeightValue = 5.0;
-
-// ===== KHỞI TẠO =====
-document.addEventListener('DOMContentLoaded', function() {
-    updateClock();
-    setInterval(updateClock, 1000);
-
-    document.getElementById('aoNumber').addEventListener('change', function() {
-        autoSave();
-        updateHarvestTotals();
-    });
-    document.getElementById('aoNumber').addEventListener('input', updateHarvestTotals);
-    document.getElementById('harvestType').addEventListener('change', function() {
-        updateTypeLabel();
-        autoSave();
-        updateHarvestTotals();
-    });
-    document.getElementById('noteInput').addEventListener('change', autoSave);
-
-    try {
-        const savedCumulative = localStorage.getItem('cantom_cumulative');
-        if (savedCumulative !== null) {
-            isCumulative = savedCumulative === 'true';
-            document.getElementById('cumulativeToggle').checked = isCumulative;
-            updateCumulativeBadge();
-        }
-    } catch(e) {}
-
-    loadAutoDecimalState();
-    loadDecimalPlaces();
-    loadFixedWeightState();
-    loadFixedWeightValue();
-
-    const saved = localStorage.getItem('colsPerTab');
-    if (saved) {
-        colsPerTab = parseInt(saved);
-        document.getElementById('colsPerTabInput').value = colsPerTab;
-    } else {
-        document.getElementById('colsPerTabInput').value = 5;
-    }
-
-    loadToggleStates();
-    loadNumpadState();
-    loadAllRecords();
-    removeLegacySampleRecords();
-
-    // Luôn mở app với bảng SẠCH, không tự nạp lại số liệu ao cũ / mẫu.
-    // Người dùng có thể xem lại số liệu ao cũ qua nút 📋 (Lịch sử ao) khi cần.
-    gridData = [];
-    for (let i = 0; i < cols * rows; i++) gridData.push(null);
-    renderTable();
-    calculateAll();
-    updateTabs();
-    updateTypeLabel();
-});
-
-function updateClock() {
-    const el = document.getElementById('currentTime');
-    if (!el) return;
-    const now = new Date();
-    el.textContent =
-        now.toLocaleDateString('vi-VN') + ' ' + now.toLocaleTimeString('vi-VN', {hour:'2-digit', minute:'2-digit'});
-}
-
-function updateTypeLabel() {
-    const type = document.getElementById('harvestType').value;
-    const labels = {
-        'sang': '🔄 Sang tôm',
-        'tia': '✂️ Thu tỉa',
-        'het': '📦 Thu hết'
+    const playBeep = () => {
+        try {
+            const ctx = new (window.AudioContext || window.webkitAudioContext)();
+            const osc = ctx.createOscillator();
+            const gain = ctx.createGain();
+            osc.connect(gain);
+            gain.connect(ctx.destination);
+            osc.frequency.value = 800;
+            gain.gain.setValueAtTime(0.1, ctx.currentTime);
+            osc.start();
+            osc.stop(ctx.currentTime + 0.1);
+        } catch (e) {}
     };
-    document.getElementById('typeLabel').textContent = labels[type] || '🔄 Sang tôm';
-}
 
-// ===== AUTO DECIMAL FUNCTIONS =====
-function toggleAutoDecimal() {
-    const checkbox = document.getElementById('autoDecimalToggle');
-    isAutoDecimal = checkbox.checked;
-    const badge = document.getElementById('autoDecimalBadge');
-    badge.textContent = isAutoDecimal ? 'ON' : 'OFF';
-    badge.className = 'badge ' + (isAutoDecimal ? 'on' : 'off');
-    localStorage.setItem('cantom_auto_decimal', isAutoDecimal ? 'true' : 'false');
-}
-
-function loadAutoDecimalState() {
-    try {
-        const savedAuto = localStorage.getItem('cantom_auto_decimal');
-        if (savedAuto !== null) {
-            isAutoDecimal = savedAuto === 'true';
-            document.getElementById('autoDecimalToggle').checked = isAutoDecimal;
-            const badge = document.getElementById('autoDecimalBadge');
-            badge.textContent = isAutoDecimal ? 'ON' : 'OFF';
-            badge.className = 'badge ' + (isAutoDecimal ? 'on' : 'off');
+    function toggleVoiceInput() {
+        if (!('webkitSpeechRecognition' in window || 'SpeechRecognition' in window)) {
+            alert("Trình duyệt không hỗ trợ nhận diện giọng nói. Hãy sử dụng Google Chrome trên điện thoại hoặc máy tính!");
+            return;
         }
-    } catch(e) {}
-}
 
-// Số chữ số thập phân cố định (vd: 2 → gõ 1 2 7 5 ra 12.75)
-function updateDecimalPlaces() {
-    let val = parseInt(document.getElementById('decimalPlacesInput').value) || 1;
-    if (val < 1) val = 1;
-    if (val > 3) val = 3;
-    decimalPlaces = val;
-    document.getElementById('decimalPlacesInput').value = val;
-    try { localStorage.setItem('cantom_decimal_places', decimalPlaces); } catch(e) {}
-}
-
-function loadDecimalPlaces() {
-    try {
-        const saved = localStorage.getItem('cantom_decimal_places');
-        if (saved) {
-            decimalPlaces = parseInt(saved) || 1;
-            document.getElementById('decimalPlacesInput').value = decimalPlaces;
-        }
-    } catch(e) {}
-}
-
-// ===== CUMULATIVE TOGGLE =====
-function toggleCumulative() {
-    const checkbox = document.getElementById('cumulativeToggle');
-    isCumulative = checkbox.checked;
-    localStorage.setItem('cantom_cumulative', isCumulative);
-    updateCumulativeBadge();
-    updateHarvestTotals();
-}
-
-function updateCumulativeBadge() {
-    const badge = document.getElementById('cumulativeBadge');
-    badge.textContent = isCumulative ? 'ON' : 'OFF';
-    badge.style.background = isCumulative ? '#22c55e' : '#64748b';
-}
-
-// ===== TOGGLE: THÔNG TIN CHI TIẾT (AO/HÌNH THỨC/GHI CHÚ) =====
-// Bấm xổ thông tin -> tự đẩy bàn phím xuống. Bấm đẩy bàn phím lên -> thông tin tự thu gọn.
-function toggleInfoDetail() {
-    const panel = document.getElementById('infoDetailPanel');
-    if (panel.classList.contains('collapsed')) {
-        expandInfoDetail();
-    } else {
-        collapseInfoDetail();
-    }
-}
-
-function expandInfoDetail() {
-    const panel = document.getElementById('infoDetailPanel');
-    const arrow = document.getElementById('summaryBarArrow');
-    panel.classList.remove('collapsed');
-    panel.classList.add('expanded');
-    if (arrow) arrow.classList.add('open');
-    localStorage.setItem('toggle_infoDetailPanel', 'expanded');
-    collapseNumpad();
-    setTimeout(fitTableRows, 320);
-}
-
-function collapseInfoDetail() {
-    const panel = document.getElementById('infoDetailPanel');
-    const arrow = document.getElementById('summaryBarArrow');
-    panel.classList.add('collapsed');
-    panel.classList.remove('expanded');
-    if (arrow) arrow.classList.remove('open');
-    localStorage.setItem('toggle_infoDetailPanel', 'collapsed');
-    setTimeout(fitTableRows, 320);
-}
-
-function loadToggleStates() {
-    const state = localStorage.getItem('toggle_infoDetailPanel');
-    if (state === 'expanded') {
-        expandInfoDetail();
-    } else {
-        collapseInfoDetail();
-    }
-}
-
-// ===== TOGGLE BÀN PHÍM SỐ =====
-// Bấm đẩy bàn phím lên (hiện) -> tự thu gọn thông tin chi tiết để đỡ chật màn hình.
-function toggleNumpad() {
-    const wrapper = document.getElementById('numpadWrapper');
-    if (wrapper.classList.contains('collapsed')) {
-        expandNumpad();
-    } else {
-        collapseNumpad();
-    }
-}
-
-function expandNumpad() {
-    const wrapper = document.getElementById('numpadWrapper');
-    const btn = document.getElementById('toggleNumpadBtn');
-    wrapper.classList.remove('collapsed');
-    btn.classList.remove('hide');
-    localStorage.setItem('numpad_collapsed', 'false');
-    collapseInfoDetail();
-    setTimeout(fitTableRows, 320);
-}
-
-function collapseNumpad() {
-    const wrapper = document.getElementById('numpadWrapper');
-    const btn = document.getElementById('toggleNumpadBtn');
-    wrapper.classList.add('collapsed');
-    btn.classList.add('hide');
-    localStorage.setItem('numpad_collapsed', 'true');
-    setTimeout(fitTableRows, 320);
-}
-
-function loadNumpadState() {
-    const collapsed = localStorage.getItem('numpad_collapsed') === 'true';
-    if (collapsed) {
-        collapseNumpad();
-    } else {
-        expandNumpad();
-    }
-}
-
-// ===== TAB MANAGEMENT =====
-function updateColsPerTab() {
-    const input = document.getElementById('colsPerTabInput');
-    let val = parseInt(input.value);
-    if (isNaN(val) || val < 1) val = 1;
-    if (val > 10) val = 10;
-    input.value = val;
-    colsPerTab = val;
-    localStorage.setItem('colsPerTab', colsPerTab);
-    updateTabs();
-}
-
-function updateTabs() {
-    totalTabs = Math.ceil(cols / colsPerTab);
-    if (totalTabs === 0) totalTabs = 1;
-    if (currentTab >= totalTabs) currentTab = totalTabs - 1;
-    if (currentTab < 0) currentTab = 0;
-    
-    const tabList = document.getElementById('tabList');
-    let html = '';
-    for (let i = 0; i < totalTabs; i++) {
-        const startCol = i * colsPerTab + 1;
-        const endCol = Math.min((i + 1) * colsPerTab, cols);
-        html += `<button class="tab ${i === currentTab ? 'active' : ''}" data-tab-index="${i}" onclick="switchTab(${i})">C${startCol}-C${endCol}</button>`;
-    }
-    tabList.innerHTML = html;
-
-    // Tự cuộn tab đang chọn vào giữa khung nhìn (dễ thấy trên điện thoại)
-    const activeBtn = tabList.querySelector('.tab.active');
-    if (activeBtn) {
-        activeBtn.scrollIntoView({ behavior: 'smooth', inline: 'center', block: 'nearest' });
-    }
-
-    // Cập nhật nhãn vị trí + bật/tắt nút mũi tên
-    const posLabel = document.getElementById('tabPositionLabel');
-    if (posLabel) posLabel.textContent = `${currentTab + 1}/${totalTabs}`;
-    const prevBtn = document.getElementById('tabPrevBtn');
-    const nextBtn = document.getElementById('tabNextBtn');
-    if (prevBtn) prevBtn.disabled = (currentTab <= 0);
-    if (nextBtn) nextBtn.disabled = (currentTab >= totalTabs - 1);
-
-    renderTable();
-}
-
-function switchTab(index) {
-    currentTab = index;
-    updateTabs();
-}
-
-// Chuyển tab bằng nút mũi tên (dễ bấm liên tiếp, không cần cuộn ngang)
-function prevTab() {
-    if (currentTab > 0) switchTab(currentTab - 1);
-}
-function nextTab() {
-    if (currentTab < totalTabs - 1) switchTab(currentTab + 1);
-}
-
-// ===== CHỌN NHANH TAB (dạng lưới, tiện khi có nhiều tab) =====
-function openTabPicker() {
-    const grid = document.getElementById('tabPickerGrid');
-    let html = '';
-    for (let i = 0; i < totalTabs; i++) {
-        const startCol = i * colsPerTab + 1;
-        const endCol = Math.min((i + 1) * colsPerTab, cols);
-        html += `<button class="${i === currentTab ? 'active' : ''}" onclick="pickTab(${i})">C${startCol}-C${endCol}</button>`;
-    }
-    grid.innerHTML = html;
-    document.getElementById('tabPickerOverlay').classList.add('show');
-}
-function pickTab(index) {
-    switchTab(index);
-    closeTabPicker();
-}
-function closeTabPicker() {
-    document.getElementById('tabPickerOverlay').classList.remove('show');
-}
-function closeTabPickerOutside(e) {
-    if (e.target === e.currentTarget) closeTabPicker();
-}
-
-function addTab() {
-    // Luôn tạo tab mới đủ số cột theo cấu hình (mặc định 5 cột)
-    addColumnsBulk(colsPerTab);
-    // Đảm bảo bảng có tối thiểu 5 dòng
-    if (rows < 5) addRowsBulk(5 - rows);
-    totalTabs = Math.ceil(cols / colsPerTab);
-    currentTab = totalTabs - 1;
-    updateTabs();
-    calculateAll();
-    autoSave();
-}
-
-function removeTab() {
-    if (totalTabs <= 1) {
-        alert('⚠️ Phải giữ ít nhất 1 tab!');
-        return;
-    }
-    const colsToRemove = Math.min(cols - (currentTab * colsPerTab), colsPerTab);
-    for (let i = 0; i < colsToRemove; i++) {
-        if (cols > 2) removeColumn();
-    }
-    totalTabs = Math.ceil(cols / colsPerTab);
-    if (currentTab >= totalTabs) currentTab = totalTabs - 1;
-    updateTabs();
-}
-
-// ===== MENU =====
-function toggleMenu() {
-    const overlay = document.getElementById('menuOverlay');
-    overlay.classList.toggle('show');
-    if (overlay.classList.contains('show')) {
-        loadAllRecords();
-        renderMenu();
-        document.getElementById('menuSearch').value = '';
-    }
-}
-
-function closeMenuOutside(e) {
-    if (e.target === e.currentTarget) toggleMenu();
-}
-
-function renderMenu() {
-    const search = document.getElementById('menuSearch').value.toLowerCase().trim();
-    const list = document.getElementById('menuList');
-
-    let filtered = allRecords;
-    if (search) {
-        filtered = allRecords.filter(r =>
-            r.ao.toLowerCase().includes(search) ||
-            r.note.toLowerCase().includes(search)
-        );
-    }
-
-    if (filtered.length === 0) {
-        list.innerHTML = `<div class="menu-empty">📭 Chưa có dữ liệu nào<br><span style="font-size:12px;">Hãy lưu ao đầu tiên!</span></div>`;
-        return;
-    }
-
-    const groups = {};
-    filtered.forEach(r => {
-        const key = (r.ao || '').trim() || '(chưa đặt tên)';
-        if (!groups[key]) groups[key] = [];
-        groups[key].push(r);
-    });
-
-    const groupKeys = Object.keys(groups).sort((a, b) => {
-        const latestA = Math.max(...groups[a].map(r => new Date(r.date).getTime()));
-        const latestB = Math.max(...groups[b].map(r => new Date(r.date).getTime()));
-        return latestB - latestA;
-    });
-
-    let html = '';
-    recordTotalsCache = {};
-    recordMoneyCache = {};
-    groupKeys.forEach(ao => {
-        const records = groups[ao].slice().sort((a, b) => new Date(b.date) - new Date(a.date));
-        let aoTotal = 0;
-        records.forEach(r => {
-            if (r.type === 'tia' || r.type === 'het') {
-                aoTotal += r.data.reduce((s, v) => s + (v || 0), 0);
-            }
-        });
-        const hasHet = records.some(r => r.type === 'het');
-
-        html += `
-            <div class="ao-group">
-                <div class="ao-group-header">
-                    <span class="ao-name">🏷️ Ao ${ao} ${hasHet ? '✅' : ''}</span>
-                    <span class="ao-group-total">Lũy kế: ${aoTotal.toFixed(1)} kg (${records.filter(r => r.type === 'tia' || r.type === 'het').length} lần)</span>
-                </div>
-        `;
-
-        records.forEach((record) => {
-            const isActive = record.id === currentRecordId;
-            const date = new Date(record.date);
-            const dateStr = date.toLocaleDateString('vi-VN') + ' ' + date.toLocaleTimeString('vi-VN', {hour:'2-digit', minute:'2-digit'});
-            const total = record.data.reduce((sum, v) => sum + (v || 0), 0);
-            const typeLabel = record.type === 'sang' ? '🔄 Sang tôm' : record.type === 'tia' ? '✂️ Thu tỉa' : '📦 Thu hết';
-            recordTotalsCache[record.id] = total;
-            recordMoneyCache[record.id] = record.totalMoney || 0;
-            const isChecked = selectedRecordIds.has(record.id);
-
-            html += `
-                <div class="menu-item ${isActive ? 'active' : ''}" onclick="loadRecord('${record.id}')" style="cursor:pointer;">
-                    <input type="checkbox" class="menu-item-check" ${isChecked ? 'checked' : ''} onclick="event.stopPropagation()" onchange="toggleRecordSelection('${record.id}', this.checked)">
-                    <div class="info">
-                        <div class="name">${typeLabel} • ${total.toFixed(1)} kg</div>
-                        <div class="detail">${record.note || 'Không ghi chú'}</div>
-                        <div class="detail" style="font-size:10px;color:#94a3b8;">${dateStr}</div>
-                        ${record.totalMoney ? `<div class="detail" style="font-size:12px;color:#15803d;font-weight:700;">💰 ${record.moneyKg.toFixed(1)} kg × ${record.priceMoney.toLocaleString('vi-VN')} đ = ${record.totalMoney.toLocaleString('vi-VN')} đ</div>` : ''}
-                    </div>
-                    <div class="actions">
-                        <span style="color:#94a3b8;font-size:16px;padding:0 4px;">›</span>
-                        <button class="del" onclick="event.stopPropagation(); deleteRecord('${record.id}')">🗑️</button>
-                    </div>
-                </div>
-            `;
-        });
-
-        html += `</div>`;
-    });
-    list.innerHTML = html;
-
-    // Bỏ các lựa chọn không còn tồn tại nữa (vd: bản ghi đã bị xóa)
-    Array.from(selectedRecordIds).forEach(id => {
-        if (!(id in recordTotalsCache)) selectedRecordIds.delete(id);
-    });
-    updateAoSelectedSumBar();
-}
-
-// ===== CHỌN NHIỀU DÒNG (LẦN CÂN) ĐỂ CỘNG TỔNG =====
-function toggleRecordSelection(id, checked) {
-    if (checked) selectedRecordIds.add(id);
-    else selectedRecordIds.delete(id);
-    updateAoSelectedSumBar();
-}
-
-function clearAoSelection() {
-    selectedRecordIds.clear();
-    renderMenu();
-}
-
-function updateAoSelectedSumBar() {
-    const bar = document.getElementById('aoSelectedSum');
-    const text = document.getElementById('aoSelectedSumText');
-    if (!bar || !text) return;
-    if (selectedRecordIds.size === 0) {
-        bar.style.display = 'none';
-        return;
-    }
-    let sum = 0, sumMoney = 0;
-    selectedRecordIds.forEach(id => {
-        sum += recordTotalsCache[id] || 0;
-        sumMoney += recordMoneyCache[id] || 0;
-    });
-    bar.style.display = 'flex';
-    text.textContent = `🧮 Đã chọn ${selectedRecordIds.size} dòng — Tổng: ${sum.toFixed(1)} kg` +
-        (sumMoney > 0 ? ` — 💰 ${sumMoney.toLocaleString('vi-VN')} đ` : '');
-}
-
-// ===== QUẢN LÝ RECORD =====
-function loadAllRecords() {
-    try {
-        const data = localStorage.getItem('cantom_all_records');
-        allRecords = data ? JSON.parse(data) : [];
-    } catch(e) {
-        allRecords = [];
-    }
-}
-
-function saveAllRecords() {
-    try {
-        localStorage.setItem('cantom_all_records', JSON.stringify(allRecords));
-    } catch(e) {}
-}
-
-// Dọn dẹp 3 ao mẫu còn sót lại trên máy từ hồi test bản cũ (nhận diện đúng theo
-// số liệu đặc trưng của từng ao mẫu, không đụng tới dữ liệu thật của người dùng).
-function removeLegacySampleRecords() {
-    const sampleFingerprints = [
-        [14.5, 41.4, 74.1, 23.2, 46.5, 73.1, 9.2, 13.3, 12.2, 33.3, 55.5, 44.4, 41.1, 12.2, 33.2, 21.1, 15.5, 18.7, 22.3, 25.0, 30.5],
-        [22.3, 15.6, 33.8, 45.2, 22.5, 13.7, 41.2, 33.1, 15.4, 25.6, 42.1, 33.5, 12.8, 22.4, 35.2, 41.3, 18.5, 20.7, 28.3, 35.0, 40.5],
-        [12.5, 35.6, 62.3, 18.7, 33.4, 55.2, 11.2, 14.5, 13.3, 28.9, 45.6, 37.8, 38.2, 15.7, 29.1, 18.4, 22.5, 26.7, 32.3, 38.0, 42.5]
-    ];
-    const isSample = (record) => {
-        if (!record || !Array.isArray(record.data)) return false;
-        return sampleFingerprints.some(fp =>
-            record.data.length === fp.length && fp.every((v, i) => record.data[i] === v)
-        );
-    };
-    const before = allRecords.length;
-    allRecords = allRecords.filter(r => !isSample(r));
-    if (allRecords.length !== before) saveAllRecords();
-}
-
-function getCurrentRecord() {
-    return {
-        id: Date.now().toString(36) + Math.random().toString(36).substr(2, 5),
-        ao: document.getElementById('aoNumber').value || '1',
-        type: document.getElementById('harvestType').value || 'sang',
-        note: document.getElementById('noteInput').value || '',
-        cols: cols,
-        rows: rows,
-        data: [...gridData],
-        date: new Date().toISOString()
-    };
-}
-
-// ===== TÍNH TIỀN =====
-function openMoneyCalc() {
-    let total = 0;
-    gridData.forEach(v => { if (v && !isNaN(v) && v > 0) total += v; });
-
-    const existing = currentRecordId ? allRecords.find(r => r.id === currentRecordId) : null;
-    document.getElementById('moneyKgInput').value = (existing && existing.moneyKg != null) ? existing.moneyKg : total.toFixed(1);
-    document.getElementById('moneyPriceInput').value = (existing && existing.priceMoney) ? existing.priceMoney : '';
-    updateMoneyResult();
-    document.getElementById('moneyCalcOverlay').classList.add('show');
-}
-
-function closeMoneyCalc() {
-    document.getElementById('moneyCalcOverlay').classList.remove('show');
-}
-
-function closeMoneyCalcOutside(e) {
-    if (e.target === e.currentTarget) closeMoneyCalc();
-}
-
-function openTabSettings() {
-    document.getElementById('tabSettingsOverlay').classList.add('show');
-}
-function closeTabSettings() {
-    document.getElementById('tabSettingsOverlay').classList.remove('show');
-}
-function closeTabSettingsOutside(e) {
-    if (e.target === e.currentTarget) closeTabSettings();
-}
-
-function openMoreActions() {
-    document.getElementById('moreActionsOverlay').classList.add('show');
-}
-function closeMoreActions() {
-    document.getElementById('moreActionsOverlay').classList.remove('show');
-}
-function closeMoreActionsOutside(e) {
-    if (e.target === e.currentTarget) closeMoreActions();
-}
-
-function updateMoneyResult() {
-    const kg = parseFloat(document.getElementById('moneyKgInput').value) || 0;
-    const price = parseFloat(document.getElementById('moneyPriceInput').value) || 0;
-    const total = Math.round(kg * price);
-    document.getElementById('moneyResult').textContent = total.toLocaleString('vi-VN') + ' đ';
-}
-
-function saveMoneyCalc() {
-    const kg = parseFloat(document.getElementById('moneyKgInput').value) || 0;
-    const price = parseFloat(document.getElementById('moneyPriceInput').value) || 0;
-    if (!price) { alert('⚠️ Nhập giá tiền trước đã.'); return; }
-    const totalMoney = Math.round(kg * price);
-
-    let record = currentRecordId ? allRecords.find(r => r.id === currentRecordId) : null;
-    if (!record) {
-        // Ao này chưa lưu lần nào -> lưu mới luôn kèm số liệu đang có trên bảng
-        record = getCurrentRecord();
-        allRecords.push(record);
-        currentRecordId = record.id;
-    }
-    record.moneyKg = kg;
-    record.priceMoney = price;
-    record.totalMoney = totalMoney;
-    saveAllRecords();
-    renderMenu();
-    closeMoneyCalc();
-    alert('✅ Đã lưu vào lịch sử:\n' + kg.toFixed(1) + ' kg × ' + price.toLocaleString('vi-VN') + ' đ = ' + totalMoney.toLocaleString('vi-VN') + ' đ');
-}
-
-// ===== SAVE OPTIONS =====
-function showSaveOptions() {
-    const aoName = document.getElementById('aoNumber').value || '1';
-    document.getElementById('saveAoName').textContent = aoName;
-    document.getElementById('saveOptionOverlay').classList.add('show');
-}
-
-function closeSaveOptions(e) {
-    if (e && e.target !== e.currentTarget) return;
-    document.getElementById('saveOptionOverlay').classList.remove('show');
-}
-
-function saveCurrentData(mode) {
-    const record = getCurrentRecord();
-    const aoName = record.ao;
-    const today = new Date(record.date).toDateString();
-    
-    const existingIndex = allRecords.findIndex(r => 
-        r.ao === aoName && 
-        new Date(r.date).toDateString() === today
-    );
-
-    if (mode === 'overwrite') {
-        if (existingIndex !== -1) {
-            allRecords[existingIndex] = record;
-            currentRecordId = record.id;
+        if (isListening) {
+            stopVoiceRecognition();
         } else {
-            allRecords.push(record);
-            currentRecordId = record.id;
+            startVoiceRecognition();
         }
-        saveAllRecords();
-        autoSave();
-        renderMenu();
-        document.getElementById('saveOptionOverlay').classList.remove('show');
-        alert('✅ Đã ghi đè dữ liệu cho ao ' + aoName + ' hôm nay!');
-    } else if (mode === 'new') {
-        const newRecord = {
-            ...record,
-            id: Date.now().toString(36) + Math.random().toString(36).substr(2, 5)
-        };
-        allRecords.push(newRecord);
-        currentRecordId = newRecord.id;
-        saveAllRecords();
-        autoSave();
-        renderMenu();
-        document.getElementById('saveOptionOverlay').classList.remove('show');
-        alert('✅ Đã lưu mới dữ liệu cho ao ' + aoName + ' hôm nay!');
     }
-}
 
-function loadRecord(id) {
-    const record = allRecords.find(r => r.id === id);
-    if (!record) return;
-    
-    document.getElementById('aoNumber').value = record.ao;
-    document.getElementById('harvestType').value = record.type;
-    document.getElementById('noteInput').value = record.note || '';
-    cols = record.cols;
-    rows = record.rows;
-    gridData = [...record.data];
-    currentRecordId = record.id;
-    
-    while (gridData.length < cols * rows) gridData.push(null);
-    
-    totalTabs = Math.ceil(cols / colsPerTab);
-    currentTab = 0;
-    updateTabs();
-    renderTable();
-    calculateAll();
-    updateHarvestTotals();
-    updateTypeLabel();
-    autoSave();
-    toggleMenu();
-}
+    function startVoiceRecognition() {
+        try {
+            const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+            recognition = new SpeechRecognition();
+            recognition.lang = 'vi-VN';
+            recognition.continuous = true;
+            recognition.interimResults = false;
 
-function deleteRecord(id) {
-    if (!confirm('🗑️ Xóa dữ liệu này?')) return;
-    allRecords = allRecords.filter(r => r.id !== id);
-    if (currentRecordId === id) {
-        currentRecordId = null;
-        loadLatestRecord();
-    }
-    saveAllRecords();
-    renderMenu();
-}
-
-function loadLatestRecord() {
-    if (allRecords.length === 0) {
-        const totalCells = cols * rows;
-        gridData = [];
-        for (let i = 0; i < totalCells; i++) {
-            gridData.push(null);
-        }
-        totalTabs = Math.ceil(cols / colsPerTab);
-        currentTab = 0;
-        updateTabs();
-        renderTable();
-        calculateAll();
-        updateHarvestTotals();
-        updateTypeLabel();
-        return;
-    }
-    
-    const latest = allRecords.reduce((a, b) => new Date(a.date) > new Date(b.date) ? a : b);
-    loadRecord(latest.id);
-}
-
-function clearAllHistory() {
-    if (!confirm('⚠️ Xóa TẤT CẢ dữ liệu lịch sử? Hành động này không thể hoàn tác!')) return;
-    allRecords = [];
-    currentRecordId = null;
-    saveAllRecords();
-    renderMenu();
-    gridData = gridData.map(() => null);
-    renderTable();
-    calculateAll();
-    updateHarvestTotals();
-    alert('🗑️ Đã xóa toàn bộ lịch sử!');
-}
-
-function exportAllData() {
-    if (allRecords.length === 0) {
-        alert('📭 Không có dữ liệu để xuất!');
-        return;
-    }
-    const blob = new Blob([JSON.stringify(allRecords, null, 2)], { type: 'application/json' });
-    const link = document.createElement('a');
-    link.href = URL.createObjectURL(blob);
-    link.download = `SoCanTom_All_Ao_${new Date().toISOString().split('T')[0]}.json`;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-}
-
-// ===== LẤY INDEX =====
-function getIndex(col, row) { return row * cols + col; }
-function getCol(index) { return index % cols; }
-function getRow(index) { return Math.floor(index / cols); }
-
-// ===== RENDER TABLE =====
-function renderTable() {
-    const thead = document.getElementById('tableHead');
-    const tbody = document.getElementById('tableBody');
-    const tfoot = document.getElementById('tableFoot');
-
-    const startCol = currentTab * colsPerTab;
-    const endCol = Math.min(startCol + colsPerTab, cols);
-
-    let headerHtml = '<tr><th style="width:30px;min-width:24px;">#</th>';
-    for (let c = startCol; c < endCol; c++) {
-        headerHtml += `<th>C${c+1}</th>`;
-    }
-    headerHtml += '</tr>';
-    thead.innerHTML = headerHtml;
-
-    let bodyHtml = '';
-    for (let r = 0; r < rows; r++) {
-        bodyHtml += '<tr>';
-        bodyHtml += `<td class="row-number">${r+1}</td>`;
-        for (let c = startCol; c < endCol; c++) {
-            const idx = getIndex(c, r);
-            const val = gridData[idx];
-            const isActive = idx === selectedIndex;
-            const isDone = val !== null && val !== undefined && val !== '';
-            const cellClass = (isActive ? 'active-cell' : '') + (isDone ? ' done-cell' : '');
-            bodyHtml += `<td class="${cellClass}">`;
-            bodyHtml += `<input type="text" class="cell-input" data-index="${idx}" value="${val !== null && val !== undefined ? val : ''}" readonly inputmode="none">`;
-            bodyHtml += `</td>`;
-        }
-        bodyHtml += '</tr>';
-    }
-    tbody.innerHTML = bodyHtml;
-
-    let footHtml = '<tr class="total-row"><td>📊</td>';
-    for (let c = startCol; c < endCol; c++) {
-        let sum = 0;
-        for (let r = 0; r < rows; r++) {
-            const idx = getIndex(c, r);
-            const val = gridData[idx];
-            if (val && !isNaN(val)) sum += val;
-        }
-        footHtml += `<td><input type="text" value="${sum.toFixed(1)}" readonly></td>`;
-    }
-    footHtml += '</tr>';
-    tfoot.innerHTML = footHtml;
-
-    document.querySelectorAll('.cell-input').forEach(inp => {
-        inp.addEventListener('click', function(e) {
-            e.preventDefault();
-            selectedIndex = parseInt(this.dataset.index);
-            updateActiveCell();
-            this.focus();
-        });
-        inp.addEventListener('focus', function() {
-            selectedIndex = parseInt(this.dataset.index);
-            updateActiveCell();
-            this.select();
-        });
-    });
-
-    setTimeout(() => focusCell(selectedIndex), 50);
-    fitTableRows();
-}
-
-// ===== TỰ ĐỘNG CO GIÃN CHIỀU CAO DÒNG =====
-// Tính chiều cao mỗi dòng dựa trên chiều cao thực tế còn lại của khung bảng,
-// để luôn hiện đủ số dòng hiện có mà KHÔNG cần cuộn, trên mọi kích thước màn hình.
-function fitTableRows() {
-    const wrapper = document.getElementById('tableWrapper');
-    if (!wrapper) return;
-    const availableHeight = wrapper.clientHeight;
-    if (availableHeight <= 0) return;
-
-    const totalRowSlots = rows + 2; // 1 dòng tiêu đề + N dòng dữ liệu + 1 dòng tổng
-    let rowHeight = Math.floor(availableHeight / totalRowSlots);
-    rowHeight = Math.max(28, Math.min(rowHeight, 74));
-
-    const cellFont = Math.max(17, Math.min(34, Math.round(rowHeight * 0.6)));
-    const totalFont = Math.max(19, Math.min(36, Math.round(rowHeight * 0.64)));
-    const headFont = Math.max(11, Math.min(14, Math.round(rowHeight * 0.24)));
-    const headPad = Math.max(2, Math.round(rowHeight * 0.14));
-
-    let styleTag = document.getElementById('dynamicRowStyle');
-    if (!styleTag) {
-        styleTag = document.createElement('style');
-        styleTag.id = 'dynamicRowStyle';
-        document.head.appendChild(styleTag);
-    }
-    styleTag.textContent =
-        '.data-table th{padding:' + headPad + 'px 4px;font-size:' + headFont + 'px;}' +
-        '.data-table td{padding:0;height:' + rowHeight + 'px;}' +
-        '.data-table td input{font-size:' + cellFont + 'px;padding:0;}' +
-        '.data-table .total-row td input{font-size:' + totalFont + 'px;}';
-}
-
-window.addEventListener('resize', fitTableRows);
-window.addEventListener('orientationchange', () => setTimeout(fitTableRows, 350));
-
-function updateActiveCell() {
-    document.querySelectorAll('.cell-input').forEach(inp => {
-        const idx = parseInt(inp.dataset.index);
-        const cell = inp.closest('td');
-        if (cell) cell.classList.toggle('active-cell', idx === selectedIndex);
-    });
-}
-
-function focusCell(index) {
-    const input = document.querySelector(`.cell-input[data-index="${index}"]`);
-    if (input) { input.focus(); input.select(); }
-}
-
-function calculateAll() {
-    updateHarvestTotals();
-    renderTable();
-}
-
-function updateHarvestTotals() {
-    let total = 0;
-    let basketCount = 0;
-    gridData.forEach(val => {
-        if (val !== null && val !== undefined && val !== '' && !isNaN(val) && val > 0) {
-            total += val;
-            basketCount++;
-        }
-    });
-    document.getElementById('typeTotal').textContent = total.toFixed(1) + ' kg';
-    
-    // Cập nhật tổng số rổ lên header
-    const basketEl = document.getElementById('totalBaskets');
-    if (basketEl) basketEl.textContent = basketCount;
-
-    const aoName = (document.getElementById('aoNumber').value || '').trim();
-    let cumulative = 0;
-    let priorCount = 0;
-
-    if (isCumulative) {
-        allRecords.forEach(r => {
-            if ((r.ao || '').trim() === aoName && r.id !== currentRecordId) {
-                if (r.type === 'tia' || r.type === 'het') {
-                    cumulative += (r.data || []).reduce((s, v) => s + (v && !isNaN(v) ? v : 0), 0);
-                    priorCount++;
+            recognition.onresult = (event) => {
+                const transcript = event.results[event.results.length - 1][0].transcript.trim().toLowerCase();
+                if (transcript.includes('xóa') || transcript.includes('sai')) {
+                    clearCell();
+                    playBeep();
+                    return;
                 }
+                if (transcript.includes('quay lại') || transcript.includes('lên')) {
+                    if (selectedIndex > 0) {
+                        selectedIndex--;
+                        renderTable();
+                        focusCell(selectedIndex);
+                    }
+                    playBeep();
+                    return;
+                }
+
+                // Chuyển đổi từ đọc số tiếng Việt sang số thực
+                const cleaned = transcript.replace(/phẩy/g, '.').replace(/[^0-9.]/g, '');
+                if (cleaned) {
+                    const input = document.querySelector(`.cell-input[data-index="${selectedIndex}"]`);
+                    if (input) {
+                        input.value = cleaned;
+                        updateDataFromInput(input);
+                        enterValue();
+                        playBeep();
+                    }
+                }
+            };
+
+            recognition.onerror = () => {
+                stopVoiceRecognition();
+            };
+
+            recognition.onend = () => {
+                if (isListening) {
+                    try { recognition.start(); } catch(e) {}
+                }
+            };
+
+            recognition.start();
+            isListening = true;
+            const micBtn = document.getElementById('btnVoice');
+            if (micBtn) micBtn.style.background = '#fecaca';
+            playBeep();
+        } catch(e) {
+            isListening = false;
+        }
+    }
+
+    function stopVoiceRecognition() {
+        isListening = false;
+        if (recognition) {
+            try { recognition.stop(); } catch(e) {}
+        }
+        const micBtn = document.getElementById('btnVoice');
+        if (micBtn) micBtn.style.background = '#f1f5f9';
+    }
+
+    // ===== KHỞI TẠO =====
+    document.addEventListener('DOMContentLoaded', function() {
+        updateClock();
+        setInterval(updateClock, 1000);
+
+        document.getElementById('aoNumber').addEventListener('change', function() {
+            autoSave();
+            updateHarvestTotals();
+        });
+        document.getElementById('aoNumber').addEventListener('input', updateHarvestTotals);
+        document.getElementById('harvestType').addEventListener('change', function() {
+            updateTypeLabel();
+            autoSave();
+            updateHarvestTotals();
+        });
+        document.getElementById('noteInput').addEventListener('change', autoSave);
+
+        try {
+            const savedRecords = localStorage.getItem('cantom_records_v1');
+            if (savedRecords) allRecords = JSON.parse(savedRecords);
+            const savedSettings = localStorage.getItem('cantom_settings_v1');
+            if (savedSettings) {
+                const s = JSON.parse(savedSettings);
+                if (s.colsPerTab) colsPerTab = s.colsPerTab;
+                if (s.totalTabs) totalTabs = s.totalTabs;
+                if (s.isAutoDecimal !== undefined) isAutoDecimal = s.isAutoDecimal;
+                if (s.decimalPlaces) decimalPlaces = s.decimalPlaces;
+            }
+        } catch(e) {}
+
+        document.getElementById('colsPerTabInput').value = colsPerTab;
+        document.getElementById('autoDecimalToggle').checked = isAutoDecimal;
+        document.getElementById('decimalPlacesInput').value = decimalPlaces;
+        updateAutoDecimalUI();
+        loadFixedWeightState();
+        loadFixedWeightValue();
+
+        if (allRecords.length === 0) {
+            createNewRecord(false);
+        } else {
+            loadRecord(allRecords[0].id, false);
+        }
+    });
+
+    function updateClock() {
+        const now = new Date();
+        const d = String(now.getDate()).padStart(2,'0') + '/' + String(now.getMonth()+1).padStart(2,'0') + '/' + now.getFullYear();
+        const t = String(now.getHours()).padStart(2,'0') + ':' + String(now.getMinutes()).padStart(2,'0');
+        // Có thể thêm hiển thị ngày giờ ở đâu đó nếu cần
+    }
+
+    function toggleInfoDetail() {
+        const panel = document.getElementById('infoDetailPanel');
+        const arrow = document.getElementById('summaryBarArrow');
+        const isCollapsed = panel.classList.contains('collapsed');
+        if (isCollapsed) {
+            panel.classList.remove('collapsed');
+            panel.classList.add('expanded');
+            arrow.classList.add('open');
+        } else {
+            panel.classList.remove('expanded');
+            panel.classList.add('collapsed');
+            arrow.classList.remove('open');
+        }
+    }
+
+    function toggleNumpad() {
+        const numpad = document.getElementById('numpadWrapper');
+        const btn = document.getElementById('toggleNumpadBtn');
+        const isCollapsed = numpad.classList.contains('collapsed');
+        if (isCollapsed) {
+            numpad.classList.remove('collapsed');
+            btn.classList.remove('hide');
+        } else {
+            numpad.classList.add('collapsed');
+            btn.classList.add('hide');
+        }
+    }
+
+    function showPinTip() {
+        document.getElementById('pinTipOverlay').classList.add('show');
+    }
+    function closePinTip() {
+        document.getElementById('pinTipOverlay').classList.remove('show');
+    }
+    function closePinTipOutside(e) {
+        if (e.target.id === 'pinTipOverlay') closePinTip();
+    }
+
+    function openMoreActions() {
+        document.getElementById('moreActionsOverlay').classList.add('show');
+    }
+    function closeMoreActions() {
+        document.getElementById('moreActionsOverlay').classList.remove('show');
+    }
+    function closeMoreActionsOutside(e) {
+        if (e.target.id === 'moreActionsOverlay') closeMoreActions();
+    }
+
+    function toggleMenu() {
+        const overlay = document.getElementById('menuOverlay');
+        const isShow = overlay.classList.contains('show');
+        if (isShow) {
+            overlay.classList.remove('show');
+        } else {
+            renderMenu();
+            overlay.classList.add('show');
+        }
+    }
+    function closeMenuOutside(e) {
+        if (e.target.id === 'menuOverlay') toggleMenu();
+    }
+
+    function openTabSettings() {
+        document.getElementById('tabSettingsOverlay').classList.add('show');
+    }
+    function closeTabSettings() {
+        document.getElementById('tabSettingsOverlay').classList.remove('show');
+    }
+    function closeTabSettingsOutside(e) {
+        if (e.target.id === 'tabSettingsOverlay') closeTabSettings();
+    }
+
+    function openMoneyCalc() {
+        const valid = gridData.filter(v => v !== null && v !== undefined && v !== '' && !isNaN(v) && Number(v) > 0);
+        const totalKg = valid.reduce((s, v) => s + Number(v), 0);
+        document.getElementById('moneyTotalKg').value = totalKg.toFixed(1);
+        document.getElementById('moneyUnitPrice').value = '';
+        document.getElementById('moneyTotalResult').innerText = '0 đ';
+        document.getElementById('moneyCalcOverlay').classList.add('show');
+    }
+    function closeMoneyCalc() {
+        document.getElementById('moneyCalcOverlay').classList.remove('show');
+    }
+    function closeMoneyCalcOutside(e) {
+        if (e.target.id === 'moneyCalcOverlay') closeMoneyCalc();
+    }
+
+    function calculateMoney() {
+        const totalKg = parseFloat(document.getElementById('moneyTotalKg').value) || 0;
+        const price = parseFloat(document.getElementById('moneyUnitPrice').value) || 0;
+        const totalMoney = Math.round(totalKg * price);
+        document.getElementById('moneyTotalResult').innerText = totalMoney.toLocaleString('vi-VN') + ' đ';
+    }
+
+    function saveMoneyResult() {
+        const resText = document.getElementById('moneyTotalResult').innerText;
+        const price = document.getElementById('moneyUnitPrice').value;
+        if (!price) {
+            alert('Vui lòng nhập đơn giá!');
+            return;
+        }
+        const noteInput = document.getElementById('noteInput');
+        noteInput.value = (noteInput.value ? noteInput.value + ' | ' : '') + 'Đơn giá: ' + Number(price).toLocaleString('vi-VN') + 'đ ➔ Thành tiền: ' + resText;
+        autoSave();
+        closeMoneyCalc();
+        alert('Đã lưu thông tin tính tiền vào ghi chú!');
+    }
+
+    // Các hàm tính toán cơ bản giữ nguyên từ file gốc
+    function updateTypeLabel() {
+        const type = document.getElementById('harvestType').value;
+        const label = document.getElementById('typeLabel');
+        if (type === 'sang') label.innerText = '🔄 Sang tôm';
+        else if (type === 'tia') label.innerText = '✂️ Thu tỉa';
+        else label.innerText = '📦 Thu hết';
+    }
+
+    function toggleCumulative() {
+        isCumulative = !isCumulative;
+        const toggle = document.getElementById('cumulativeToggle');
+        toggle.checked = isCumulative;
+        const badge = document.getElementById('cumulativeBadge');
+        badge.innerText = isCumulative ? 'ON' : 'OFF';
+        badge.style.background = isCumulative ? '#22c55e' : '#2563eb';
+        updateHarvestTotals();
+    }
+
+    function toggleAutoDecimal() {
+        isAutoDecimal = document.getElementById('autoDecimalToggle').checked;
+        updateAutoDecimalUI();
+        saveSettings();
+    }
+
+    function updateAutoDecimalUI() {
+        const badge = document.getElementById('autoDecimalBadge');
+        badge.innerText = isAutoDecimal ? 'ON' : 'OFF';
+        badge.className = 'badge ' + (isAutoDecimal ? 'on' : 'off');
+    }
+
+    function updateDecimalPlaces() {
+        const val = parseInt(document.getElementById('decimalPlacesInput').value);
+        if (!isNaN(val) && val >= 1 && val <= 3) {
+            decimalPlaces = val;
+            saveSettings();
+        }
+    }
+
+    function saveSettings() {
+        try {
+            const s = { colsPerTab, totalTabs, isAutoDecimal, decimalPlaces };
+            localStorage.setItem('cantom_settings_v1', JSON.stringify(s));
+        } catch(e) {}
+    }
+
+    function toggleFixedWeight() {
+        const checkbox = document.getElementById('fixedWeightToggle');
+        isFixedWeight = checkbox.checked;
+        updateFixedWeightUI();
+        try { localStorage.setItem('cantom_fixed_weight_enabled', isFixedWeight ? 'true' : 'false'); } catch(e) {}
+    }
+
+    function loadFixedWeightState() {
+        try {
+            const saved = localStorage.getItem('cantom_fixed_weight_enabled');
+            if (saved !== null) {
+                isFixedWeight = saved === 'true';
+                const cb = document.getElementById('fixedWeightToggle');
+                if (cb) cb.checked = isFixedWeight;
+                updateFixedWeightUI();
+            }
+        } catch(e) {}
+    }
+
+    function updateFixedWeightValue() {
+        const input = document.getElementById('fixedWeightInput');
+        if (!input) return;
+        let val = parseFloat(input.value);
+        if (isNaN(val) || val < 0) val = 5.0;
+        fixedWeightValue = val;
+        input.value = val.toFixed(1);
+        updateFixedWeightUI();
+        try { localStorage.setItem('cantom_fixed_weight_value', fixedWeightValue); } catch(e) {}
+    }
+
+    function loadFixedWeightValue() {
+        try {
+            const saved = localStorage.getItem('cantom_fixed_weight_value');
+            if (saved !== null) {
+                fixedWeightValue = parseFloat(saved) || 5.0;
+                const input = document.getElementById('fixedWeightInput');
+                if (input) input.value = fixedWeightValue.toFixed(1);
+            }
+        } catch(e) {}
+        updateFixedWeightUI();
+    }
+
+    function updateFixedWeightUI() {
+        const badge = document.getElementById('fixedWeightBadge');
+        if (badge) {
+            badge.textContent = isFixedWeight ? 'ON' : 'OFF';
+            badge.className = 'badge ' + (isFixedWeight ? 'on' : 'off');
+        }
+        const navBadge = document.getElementById('fixedWeightBadgeNav');
+        const navVal = document.getElementById('fixedWeightBadgeNavVal');
+        if (navBadge && navVal) {
+            if (isFixedWeight) {
+                navVal.textContent = fixedWeightValue.toFixed(1);
+                navBadge.style.display = 'inline-flex';
+            } else {
+                navBadge.style.display = 'none';
+            }
+        }
+    }
+
+    // Cần có các hàm hỗ trợ bảng cơ bản từ index(1).html
+    function getCol(idx) { return idx % cols; }
+    function getRow(idx) { return Math.floor(idx / cols); }
+    function getIndex(c, r) { return r * cols + c; }
+
+    function focusCell(idx) {
+        selectedIndex = idx;
+        const inputs = document.querySelectorAll('.cell-input');
+        inputs.forEach(inp => {
+            const cell = inp.closest('td');
+            if (parseInt(inp.dataset.index) === idx) {
+                if (cell) cell.classList.add('active-cell');
+                inp.focus();
+            } else {
+                if (cell) cell.classList.remove('active-cell');
             }
         });
-        const currentType = document.getElementById('harvestType').value;
-        if (currentType === 'tia' || currentType === 'het') {
-            cumulative += total;
-            priorCount++;
+    }
+
+    function renderTable() {
+        const thead = document.getElementById('tableHead');
+        const tbody = document.getElementById('tableBody');
+        const tfoot = document.getElementById('tableFoot');
+
+        cols = totalTabs * colsPerTab;
+        if (gridData.length < rows * cols) {
+            while (gridData.length < rows * cols) gridData.push(null);
         }
-        document.getElementById('grandTotal').textContent = cumulative.toFixed(1) + ' kg';
-        const grandLabelEl = document.getElementById('grandTotalLabel');
-        if (grandLabelEl) {
-            grandLabelEl.textContent = priorCount > 0 ? `📊 LŨY KẾ (${priorCount} lần)` : '📊 TỔNG';
+
+        const startCol = currentTab * colsPerTab;
+        const endCol = Math.min(startCol + colsPerTab, cols);
+
+        // Header
+        let headHtml = '<tr><th style="width:36px;">#</th>';
+        for (let c = startCol; c < endCol; c++) {
+            headHtml += `<th>Rổ ${c + 1}</th>`;
         }
-    } else {
-        document.getElementById('grandTotal').textContent = total.toFixed(1) + ' kg';
-        document.getElementById('grandTotalLabel').textContent = '📊 TỔNG';
-    }
-}
+        headHtml += '</tr>';
+        thead.innerHTML = headHtml;
 
-// ===== CỐ ĐỊNH SỐ CÂN (MÃ CÂN) =====
-function toggleFixedWeight() {
-    const checkbox = document.getElementById('fixedWeightToggle');
-    isFixedWeight = checkbox.checked;
-    updateFixedWeightUI();
-    try { localStorage.setItem('cantom_fixed_weight_enabled', isFixedWeight ? 'true' : 'false'); } catch(e) {}
-}
-
-function loadFixedWeightState() {
-    try {
-        const saved = localStorage.getItem('cantom_fixed_weight_enabled');
-        if (saved !== null) {
-            isFixedWeight = saved === 'true';
-            const cb = document.getElementById('fixedWeightToggle');
-            if (cb) cb.checked = isFixedWeight;
-            updateFixedWeightUI();
-        }
-    } catch(e) {}
-}
-
-function updateFixedWeightValue() {
-    const input = document.getElementById('fixedWeightInput');
-    if (!input) return;
-    let val = parseFloat(input.value);
-    if (isNaN(val) || val < 0) val = 5.0;
-    fixedWeightValue = val;
-    input.value = val.toFixed(1);
-    updateFixedWeightUI();
-    try { localStorage.setItem('cantom_fixed_weight_value', fixedWeightValue); } catch(e) {}
-}
-
-function loadFixedWeightValue() {
-    try {
-        const saved = localStorage.getItem('cantom_fixed_weight_value');
-        if (saved !== null) {
-            fixedWeightValue = parseFloat(saved) || 5.0;
-            const input = document.getElementById('fixedWeightInput');
-            if (input) input.value = fixedWeightValue.toFixed(1);
-        }
-    } catch(e) {}
-    updateFixedWeightUI();
-}
-
-function updateFixedWeightUI() {
-    const badge = document.getElementById('fixedWeightBadge');
-    if (badge) {
-        badge.textContent = isFixedWeight ? 'ON' : 'OFF';
-        badge.className = 'badge ' + (isFixedWeight ? 'on' : 'off');
-    }
-    const navBadge = document.getElementById('fixedWeightBadgeNav');
-    const navVal = document.getElementById('fixedWeightBadgeNavVal');
-    if (navBadge && navVal) {
-        if (isFixedWeight) {
-            navVal.textContent = fixedWeightValue.toFixed(1);
-            navBadge.style.display = 'inline-flex';
-        } else {
-            navBadge.style.display = 'none';
-        }
-    }
-}
-
-// ===== NHẬP LIỆU =====
-function enterValue() {
-    // Nếu đang bật cố định số cân, tự động điền số cân cố định vào ô hiện tại trước khi xuống dòng
-    if (isFixedWeight && fixedWeightValue !== null && !isNaN(fixedWeightValue)) {
-        const input = document.querySelector(`.cell-input[data-index="${selectedIndex}"]`);
-        if (input) {
-            input.value = fixedWeightValue.toFixed(1);
-            updateDataFromInput(input);
-        }
-    }
-
-    const currentCol = getCol(selectedIndex);
-    const currentRow = getRow(selectedIndex);
-    if (currentRow === rows - 1) {
-        const nextCol = currentCol + 1;
-        if (nextCol < cols) selectedIndex = getIndex(nextCol, 0);
-        else { addColumn(); selectedIndex = getIndex(cols - 1, 0); }
-    } else {
-        selectedIndex = getIndex(currentCol, currentRow + 1);
-    }
-    renderTable();
-    focusCell(selectedIndex);
-    autoSave();
-}
-
-// ===== NUMPAD - CHẾ ĐỘ TỰ ĐỘNG THÊM DẤU THẬP PHÂN =====
-// Format chuỗi chữ số thành số có N chữ số lẻ cố định ở cuối (vd decimalPlaces=2: "1275" -> "12.75")
-function formatAutoDigits(digits) {
-    if (digits.length === 0) return '';
-    if (digits.length <= decimalPlaces) {
-        return '0.' + digits.padStart(decimalPlaces, '0');
-    }
-    const intPart = digits.substring(0, digits.length - decimalPlaces);
-    const decPart = digits.substring(digits.length - decimalPlaces);
-    return intPart + '.' + decPart;
-}
-
-function appendNumber(val) {
-    const input = document.querySelector(`.cell-input[data-index="${selectedIndex}"]`);
-    if (!input) return;
-    let current = input.value || '';
-    
-    // Nếu đang ở chế độ tự động thêm dấu thập phân
-    if (isAutoDecimal) {
-        // Nếu là dấu . hoặc , thì bỏ qua (không cho nhập thủ công)
-        if (val === '.' || val === ',') return;
-        
-        // Lấy tất cả chữ số (bỏ dấu .)
-        let digits = current.replace(/\./g, '');
-        
-        // Bỏ số 0 ở đầu (số 0 này là do lần format trước tự thêm vào, không phải số người dùng gõ)
-        digits = digits.replace(/^0+/, '');
-        
-        // Ghép số mới rồi format lại theo số lẻ cố định (decimalPlaces)
-        digits = digits + val;
-        input.value = formatAutoDigits(digits);
-        updateDataFromInput(input);
-        return;
-    }
-    
-    // Chế độ bình thường (cho phép nhập dấu . và ,)
-    if ((val === '.' || val === ',') && (current.includes('.') || current.includes(','))) return;
-    
-    if (current === '0' && val !== '.' && val !== ',') {
-        input.value = val;
-    } else {
-        input.value = current + val;
-    }
-    updateDataFromInput(input);
-}
-
-function deleteLast() {
-    const input = document.querySelector(`.cell-input[data-index="${selectedIndex}"]`);
-    if (!input) return;
-    let current = input.value || '';
-    
-    // Nếu đang ở chế độ tự động
-    if (isAutoDecimal) {
-        // Lấy tất cả chữ số (bỏ dấu .), bỏ số 0 dư ở đầu, rồi xóa số cuối
-        let digits = current.replace(/\./g, '');
-        digits = digits.replace(/^0+/, '');
-        digits = digits.slice(0, -1);
-        input.value = digits.length === 0 ? '' : formatAutoDigits(digits);
-        updateDataFromInput(input);
-        return;
-    }
-    
-    // Chế độ bình thường
-    input.value = current.slice(0, -1);
-    updateDataFromInput(input);
-}
-
-function clearCell() {
-    const input = document.querySelector(`.cell-input[data-index="${selectedIndex}"]`);
-    if (!input) return;
-    input.value = '';
-    updateDataFromInput(input);
-}
-
-function updateDataFromInput(input) {
-    const idx = parseInt(input.dataset.index);
-    let rawValue = input.value.replace(/,/g, '.');
-    const val = parseFloat(rawValue);
-    gridData[idx] = isNaN(val) ? null : val;
-    const cell = input.closest('td');
-    if (cell) cell.classList.toggle('done-cell', gridData[idx] !== null && gridData[idx] !== undefined && gridData[idx] !== '');
-    updateHarvestTotals();
-    updateColumnFooters();
-    autoSave();
-}
-
-function updateColumnFooters() {
-    const startCol = currentTab * colsPerTab;
-    const endCol = Math.min(startCol + colsPerTab, cols);
-    const footInputs = document.querySelectorAll('#tableFoot input');
-    let i = 0;
-    for (let c = startCol; c < endCol; c++) {
-        let sum = 0;
+        // Body
+        let bodyHtml = '';
         for (let r = 0; r < rows; r++) {
-            const idx = getIndex(c, r);
-            const v = gridData[idx];
-            if (v && !isNaN(v)) sum += v;
+            bodyHtml += `<tr><td class="row-number">${r + 1}</td>`;
+            for (let c = startCol; c < endCol; c++) {
+                const idx = getIndex(c, r);
+                const val = gridData[idx];
+                const displayVal = (val !== null && val !== undefined && val !== '') ? val : '';
+                const isActive = idx === selectedIndex;
+                const isDone = displayVal !== '';
+                bodyHtml += `<td class="${isActive ? 'active-cell' : isDone ? 'done-cell' : ''}" onclick="focusCell(${idx})">
+                    <input type="text" inputmode="none" class="cell-input" data-index="${idx}" value="${displayVal}" onfocus="selectedIndex=${idx}; highlightCell(${idx})" oninput="updateDataFromInput(this)">
+                </td>`;
+            }
+            bodyHtml += '</tr>';
         }
-        if (footInputs[i]) footInputs[i].value = sum.toFixed(1);
-        i++;
-    }
-}
+        tbody.innerHTML = bodyHtml;
 
-// ===== THÊM / XÓA =====
-// Thêm nhiều cột một lúc, không render giữa chừng (dùng cho addTab)
-function addColumnsBulk(n) {
-    for (let k = 0; k < n; k++) {
+        // Footer tổng cột
+        let footHtml = '<tr class="total-row"><td>Σ</td>';
+        for (let c = startCol; c < endCol; c++) {
+            let sum = 0;
+            for (let r = 0; r < rows; r++) {
+                const v = gridData[getIndex(c, r)];
+                if (v && !isNaN(v)) sum += v;
+            }
+            footHtml += `<td><input type="text" readonly value="${sum.toFixed(1)}"></td>`;
+        }
+        footHtml += '</tr>';
+        tfoot.innerHTML = footHtml;
+
+        updateTabList();
+        updateHarvestTotals();
+    }
+
+    function highlightCell(idx) {
+        const inputs = document.querySelectorAll('.cell-input');
+        inputs.forEach(inp => {
+            const cell = inp.closest('td');
+            if (parseInt(inp.dataset.index) === idx) {
+                if (cell) cell.classList.add('active-cell');
+            } else {
+                if (cell) cell.classList.remove('active-cell');
+            }
+        });
+    }
+
+    function updateHarvestTotals() {
+        const valid = gridData.filter(v => v !== null && v !== undefined && v !== '' && !isNaN(v) && Number(v) > 0);
+        const totalKg = valid.reduce((s, v) => s + Number(v), 0);
+        const totalBaskets = valid.length;
+
+        document.getElementById('totalBaskets').innerText = totalBaskets;
+        document.getElementById('grandTotal').innerText = totalKg.toFixed(1) + ' kg';
+        document.getElementById('typeTotal').innerText = totalKg.toFixed(1) + ' kg';
+    }
+
+    function updateTabList() {
+        const list = document.getElementById('tabList');
+        let html = '';
+        for (let t = 0; t < totalTabs; t++) {
+            const start = t * colsPerTab + 1;
+            const end = (t + 1) * colsPerTab;
+            html += `<button class="tab ${t === currentTab ? 'active' : ''}" onclick="switchTab(${t})">Tab ${t + 1} (${start}-${end})</button>`;
+        }
+        list.innerHTML = html;
+        document.getElementById('tabPositionLabel').innerText = (currentTab + 1) + '/' + totalTabs;
+        document.getElementById('tabPrevBtn').disabled = currentTab === 0;
+        document.getElementById('tabNextBtn').disabled = currentTab === totalTabs - 1;
+    }
+
+    function switchTab(t) {
+        if (t >= 0 && t < totalTabs) {
+            currentTab = t;
+            renderTable();
+        }
+    }
+    function prevTab() { switchTab(currentTab - 1); }
+    function nextTab() { switchTab(currentTab + 1); }
+
+    function openTabPicker() {
+        let t = prompt(`Chọn tab (1 đến ${totalTabs}):`, currentTab + 1);
+        if (t !== null) {
+            let idx = parseInt(t) - 1;
+            if (!isNaN(idx) && idx >= 0 && idx < totalTabs) switchTab(idx);
+        }
+    }
+
+    function addTab() {
+        totalTabs++;
+        currentTab = totalTabs - 1;
+        saveSettings();
+        renderTable();
+        closeTabSettings();
+    }
+    function removeTab() {
+        if (totalTabs <= 1) {
+            alert('Cần ít nhất 1 tab!');
+            return;
+        }
+        totalTabs--;
+        if (currentTab >= totalTabs) currentTab = totalTabs - 1;
+        saveSettings();
+        renderTable();
+        closeTabSettings();
+    }
+
+    function updateColsPerTab() {
+        const val = parseInt(document.getElementById('colsPerTabInput').value);
+        if (!isNaN(val) && val >= 1 && val <= 10) {
+            colsPerTab = val;
+            saveSettings();
+            renderTable();
+        }
+    }
+
+    function addRow() {
+        rows++;
+        renderTable();
+    }
+    function removeRow() {
+        if (rows <= 1) return;
+        rows--;
+        renderTable();
+    }
+
+    function enterValue() {
+        if (isFixedWeight && fixedWeightValue !== null && !isNaN(fixedWeightValue)) {
+            const input = document.querySelector(`.cell-input[data-index="${selectedIndex}"]`);
+            if (input) {
+                input.value = fixedWeightValue.toFixed(1);
+                updateDataFromInput(input);
+            }
+        }
+
+        const currentCol = getCol(selectedIndex);
+        const currentRow = getRow(selectedIndex);
+        if (currentRow === rows - 1) {
+            const nextCol = currentCol + 1;
+            if (nextCol < cols) selectedIndex = getIndex(nextCol, 0);
+            else { addColumn(); selectedIndex = getIndex(cols - 1, 0); }
+        } else {
+            selectedIndex = getIndex(currentCol, currentRow + 1);
+        }
+        renderTable();
+        focusCell(selectedIndex);
+        autoSave();
+    }
+
+    function formatAutoDigits(digits) {
+        if (digits.length === 0) return '';
+        if (digits.length <= decimalPlaces) {
+            return '0.' + digits.padStart(decimalPlaces, '0');
+        }
+        const intPart = digits.substring(0, digits.length - decimalPlaces);
+        const decPart = digits.substring(digits.length - decimalPlaces);
+        return intPart + '.' + decPart;
+    }
+
+    function appendNumber(val) {
+        const input = document.querySelector(`.cell-input[data-index="${selectedIndex}"]`);
+        if (!input) return;
+        let current = input.value || '';
+        if (isAutoDecimal) {
+            if (val === '.' || val === ',') return;
+            let digits = current.replace(/\./g, '');
+            digits = digits.replace(/^0+/, '');
+            digits = digits + val;
+            input.value = formatAutoDigits(digits);
+            updateDataFromInput(input);
+            return;
+        }
+        if ((val === '.' || val === ',') && (current.includes('.') || current.includes(','))) return;
+        if (current === '0' && val !== '.' && val !== ',') {
+            input.value = val;
+        } else {
+            input.value = current + val;
+        }
+        updateDataFromInput(input);
+    }
+
+    function deleteLast() {
+        const input = document.querySelector(`.cell-input[data-index="${selectedIndex}"]`);
+        if (!input) return;
+        let current = input.value || '';
+        if (isAutoDecimal) {
+            let digits = current.replace(/\./g, '');
+            digits = digits.replace(/^0+/, '');
+            digits = digits.slice(0, -1);
+            input.value = digits.length === 0 ? '' : formatAutoDigits(digits);
+            updateDataFromInput(input);
+            return;
+        }
+        input.value = current.slice(0, -1);
+        updateDataFromInput(input);
+    }
+
+    function clearCell() {
+        const input = document.querySelector(`.cell-input[data-index="${selectedIndex}"]`);
+        if (!input) return;
+        input.value = '';
+        updateDataFromInput(input);
+    }
+
+    function updateDataFromInput(input) {
+        const idx = parseInt(input.dataset.index);
+        let rawValue = input.value.replace(/,/g, '.');
+        const val = parseFloat(rawValue);
+        gridData[idx] = isNaN(val) ? null : val;
+        const cell = input.closest('td');
+        if (cell) cell.classList.toggle('done-cell', gridData[idx] !== null && gridData[idx] !== undefined && gridData[idx] !== '');
+        updateHarvestTotals();
+        autoSave();
+    }
+
+    function addColumn() {
         cols++;
         const newGrid = [];
         for (let r = 0; r < rows; r++) {
@@ -2323,283 +1814,242 @@ function addColumnsBulk(n) {
             }
         }
         gridData = newGrid;
-    }
-}
-
-// Thêm nhiều dòng một lúc, không render giữa chừng (dùng cho addTab)
-function addRowsBulk(n) {
-    for (let k = 0; k < n; k++) {
-        rows++;
-        const newGrid = [];
-        for (let r = 0; r < rows; r++) {
-            for (let c = 0; c < cols; c++) {
-                const oldIdx = r * cols + c;
-                if (r < rows - 1 && oldIdx < gridData.length) {
-                    newGrid.push(gridData[oldIdx]);
-                } else {
-                    newGrid.push(null);
-                }
-            }
-        }
-        gridData = newGrid;
-    }
-}
-
-function addColumn() {
-    addColumnsBulk(1);
-    totalTabs = Math.ceil(cols / colsPerTab);
-    currentTab = totalTabs - 1;
-    updateTabs();
-    calculateAll();
-    autoSave();
-}
-
-function removeColumn() {
-    if (cols <= 2) { alert('⚠️ Phải giữ ít nhất 2 cột!'); return; }
-    cols--;
-    const newGrid = [];
-    for (let r = 0; r < rows; r++) {
-        for (let c = 0; c < cols; c++) {
-            const oldIdx = r * (cols + 1) + c;
-            newGrid.push(gridData[oldIdx] || null);
-        }
-    }
-    gridData = newGrid;
-    if (selectedIndex >= gridData.length) selectedIndex = gridData.length - 1;
-    totalTabs = Math.ceil(cols / colsPerTab);
-    if (currentTab >= totalTabs) currentTab = totalTabs - 1;
-    updateTabs();
-    calculateAll();
-    autoSave();
-}
-
-function addRow() {
-    addRowsBulk(1);
-    renderTable();
-    calculateAll();
-    autoSave();
-}
-
-function removeRow() {
-    if (rows <= 2) { alert('⚠️ Phải giữ ít nhất 2 dòng!'); return; }
-    rows--;
-    const newGrid = [];
-    for (let r = 0; r < rows; r++) {
-        for (let c = 0; c < cols; c++) {
-            const oldIdx = r * cols + c;
-            if (oldIdx < gridData.length) {
-                newGrid.push(gridData[oldIdx]);
-            } else {
-                newGrid.push(null);
-            }
-        }
-    }
-    gridData = newGrid;
-    if (selectedIndex >= gridData.length) selectedIndex = gridData.length - 1;
-    renderTable();
-    calculateAll();
-    autoSave();
-}
-
-function resetAll() {
-    if (!confirm('🔄 Xóa tất cả dữ liệu trên bảng?')) return;
-    gridData = gridData.map(() => null);
-    selectedIndex = 0;
-    renderTable();
-    focusCell(0);
-    calculateAll();
-    autoSave();
-}
-
-// ===== LƯU TRỮ =====
-function getSaveData() {
-    return {
-        ao: document.getElementById('aoNumber').value,
-        type: document.getElementById('harvestType').value,
-        note: document.getElementById('noteInput').value,
-        cols: cols, rows: rows, data: gridData,
-        date: new Date().toISOString()
-    };
-}
-
-function autoSave() {
-    try {
-        localStorage.setItem('cantom_current_data', JSON.stringify(getSaveData()));
-    } catch(e) {}
-}
-
-function loadSavedData() {
-    try {
-        const saved = localStorage.getItem('cantom_current_data');
-        if (!saved) return false;
-        const data = JSON.parse(saved);
-        document.getElementById('aoNumber').value = data.ao || '1';
-        document.getElementById('harvestType').value = data.type || 'sang';
-        document.getElementById('noteInput').value = data.note || '';
-        cols = data.cols || 5; 
-        rows = data.rows || 5;
-        gridData = data.data || [];
-        while (gridData.length < cols * rows) gridData.push(null);
-        totalTabs = Math.ceil(cols / colsPerTab);
-        currentTab = 0;
-        updateTabs();
         renderTable();
-        calculateAll();
+    }
+
+    function autoSave() {
+        if (!currentRecordId) return;
+        const ao = document.getElementById('aoNumber').value.trim() || '1';
+        const type = document.getElementById('harvestType').value;
+        const note = document.getElementById('noteInput').value;
+        const valid = gridData.filter(v => v !== null && v !== undefined && v !== '' && !isNaN(v) && Number(v) > 0);
+        const totalKg = valid.reduce((s, v) => s + Number(v), 0);
+
+        const idx = allRecords.findIndex(r => r.id === currentRecordId);
+        if (idx !== -1) {
+            allRecords[idx].ao = ao;
+            allRecords[idx].type = type;
+            allRecords[idx].note = note;
+            allRecords[idx].data = [...gridData];
+            allRecords[idx].cols = cols;
+            allRecords[idx].rows = rows;
+            allRecords[idx].colsPerTab = colsPerTab;
+            allRecords[idx].totalTabs = totalTabs;
+            allRecords[idx].totalKg = totalKg;
+            allRecords[idx].baskets = valid.length;
+            allRecords[idx].updatedAt = new Date().toISOString();
+            try { localStorage.setItem('cantom_records_v1', JSON.stringify(allRecords)); } catch(e) {}
+        }
+    }
+
+    function showSaveOptions() {
+        const ao = document.getElementById('aoNumber').value.trim() || '1';
+        document.getElementById('saveAoName').innerText = ao;
+        document.getElementById('saveOptionOverlay').classList.add('show');
+    }
+    function closeSaveOptions() {
+        document.getElementById('saveOptionOverlay').classList.remove('show');
+    }
+
+    function saveCurrentData(mode) {
+        closeSaveOptions();
+        const ao = document.getElementById('aoNumber').value.trim() || '1';
+        const type = document.getElementById('harvestType').value;
+        const note = document.getElementById('noteInput').value;
+        const valid = gridData.filter(v => v !== null && v !== undefined && v !== '' && !isNaN(v) && Number(v) > 0);
+        const totalKg = valid.reduce((s, v) => s + Number(v), 0);
+
+        if (mode === 'new') {
+            createNewRecord(true);
+            alert('Đã tạo ao mới và lưu dữ liệu!');
+        } else {
+            autoSave();
+            alert('Đã ghi đè dữ liệu ao ' + ao + '!');
+        }
+    }
+
+    function createNewRecord(loadIt = true) {
+        const newId = 'rec_' + Date.now();
+        const newRec = {
+            id: newId,
+            ao: '1',
+            type: 'sang',
+            note: '',
+            data: new Array(rows * cols).fill(null),
+            cols: cols,
+            rows: rows,
+            colsPerTab: colsPerTab,
+            totalTabs: totalTabs,
+            totalKg: 0,
+            baskets: 0,
+            updatedAt: new Date().toISOString()
+        };
+        allRecords.unshift(newRec);
+        if (loadIt) {
+            loadRecord(newId, false);
+        }
+    }
+
+    function loadRecord(id, closeMenu = true) {
+        const rec = allRecords.find(r => r.id === id);
+        if (!rec) return;
+        currentRecordId = rec.id;
+        document.getElementById('aoNumber').value = rec.ao || '1';
+        document.getElementById('harvestType').value = rec.type || 'sang';
+        document.getElementById('noteInput').value = rec.note || '';
         updateTypeLabel();
-        return true;
-    } catch(e) { return false; }
-}
 
-// ===== IMPORT / EXPORT =====
-function loadData() {
-    document.getElementById('fileInput').click();
-}
+        cols = rec.cols || 5;
+        rows = rec.rows || 10;
+        colsPerTab = rec.colsPerTab || 5;
+        totalTabs = rec.totalTabs || 1;
+        currentTab = 0;
+        gridData = rec.data ? [...rec.data] : new Array(rows * cols).fill(null);
+        selectedIndex = 0;
 
-function importData(event) {
-    const file = event.target.files[0];
-    if (!file) return;
-    const reader = new FileReader();
-    reader.onload = function(e) {
-        try {
-            const data = JSON.parse(e.target.result);
-            let records;
-            if (data && data.app === 'socan-tom-backup' && Array.isArray(data.records)) {
-                // File sao lưu ĐẦY ĐỦ (bản mới) — chứa toàn bộ lịch sử các ao
-                records = data.records;
-            } else if (Array.isArray(data)) {
-                // File cũ dạng mảng (từ bản sao lưu trước đây)
-                records = data;
-            } else {
-                records = null;
-            }
-
-            if (records) {
-                if (!confirm('Khôi phục sẽ THAY THẾ toàn bộ ' + allRecords.length + ' ao hiện có bằng ' + records.length + ' ao trong file sao lưu. Tiếp tục?')) {
-                    event.target.value = '';
-                    return;
-                }
-                allRecords = records;
-                saveAllRecords();
-                gridData = [];
-                for (let i = 0; i < cols * rows; i++) gridData.push(null);
-                renderTable();
-                calculateAll();
-                toggleMenu();
-                alert('✅ Khôi phục thành công ' + records.length + ' ao! Xem danh sách trong 📂 Lịch sử ao.');
-            } else {
-                // File cũ dạng 1 ao đơn lẻ (bản sao lưu rất cũ)
-                document.getElementById('aoNumber').value = data.ao || '1';
-                document.getElementById('harvestType').value = data.type || 'sang';
-                document.getElementById('noteInput').value = data.note || '';
-                cols = data.cols || 5; 
-                rows = data.rows || 5;
-                gridData = data.data || [];
-                while (gridData.length < cols * rows) gridData.push(null);
-                totalTabs = Math.ceil(cols / colsPerTab);
-                currentTab = 0;
-                updateTabs();
-                renderTable();
-                calculateAll();
-                updateTypeLabel();
-                autoSave();
-                alert('✅ Khôi phục thành công 1 ao!');
-            }
-        } catch(err) {
-            alert('❌ Lỗi đọc file: ' + err.message);
-        }
-    };
-    reader.readAsText(file);
-    event.target.value = '';
-}
-
-// ===== SAO LƯU (toàn bộ lịch sử tất cả các ao) =====
-function exportJSON() {
-    loadAllRecords();
-    const backup = {
-        app: 'socan-tom-backup',
-        version: 1,
-        exportedAt: new Date().toISOString(),
-        records: allRecords
-    };
-    const blob = new Blob([JSON.stringify(backup, null, 2)], { type: 'application/json' });
-    const link = document.createElement('a');
-    link.href = URL.createObjectURL(blob);
-    link.download = `SoCanTom_SaoLuu_${new Date().toISOString().split('T')[0]}.json`;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    alert('🗂️ Đã tải file sao lưu TOÀN BỘ ' + allRecords.length + ' ao đã lưu.\n\nFile này dùng để phục hồi lại dữ liệu (bấm nút "📥 Khôi phục") khi mất dữ liệu hoặc chuyển sang máy khác — không dùng để xem số liệu. Muốn xem/gửi số liệu thì dùng nút "📊 CSV".');
-}
-
-// ===== XUẤT CSV =====
-async function exportExcelReal() {
-    const ao = document.getElementById('aoNumber').value || '1';
-    const type = document.getElementById('harvestType').value;
-    const typeLabel = type === 'sang' ? 'Sang tom' : type === 'tia' ? 'Thu tia' : 'Thu het';
-    const note = document.getElementById('noteInput').value || '';
-    const dateStr = new Date().toISOString().split('T')[0];
-
-    const rowsCsv = [];
-    rowsCsv.push([`SO CAN TOM - Ao ${ao}`].join(';'));
-    rowsCsv.push([`Hinh thuc: ${typeLabel}`, `Ghi chu: ${note || 'Khong co'}`, `Ngay: ${dateStr}`].join(';'));
-    rowsCsv.push('');
-    const header = ['#'];
-    for (let c = 0; c < cols; c++) header.push(`C${c + 1}`);
-    header.push('TONG');
-    rowsCsv.push(header.join(';'));
-
-    let grandTotal = 0;
-    for (let r = 0; r < rows; r++) {
-        let rowSum = 0;
-        const line = [String(r + 1)];
-        for (let c = 0; c < cols; c++) {
-            const idx = getIndex(c, r);
-            const val = gridData[idx] || 0;
-            rowSum += val;
-            line.push(val.toFixed(1).replace('.', ','));
-        }
-        grandTotal += rowSum;
-        line.push(rowSum.toFixed(1).replace('.', ','));
-        rowsCsv.push(line.join(';'));
+        renderTable();
+        if (closeMenu) toggleMenu();
     }
 
-    const totalLine = ['TONG'];
-    for (let c = 0; c < cols; c++) {
-        let sum = 0;
-        for (let r = 0; r < rows; r++) {
-            const idx = getIndex(c, r);
-            sum += gridData[idx] || 0;
-        }
-        totalLine.push(sum.toFixed(1).replace('.', ','));
-    }
-    totalLine.push(grandTotal.toFixed(1).replace('.', ','));
-    rowsCsv.push(totalLine.join(';'));
+    function renderMenu() {
+        const list = document.getElementById('menuList');
+        const search = document.getElementById('menuSearch').value.toLowerCase();
+        const filtered = allRecords.filter(r => (r.ao + '').toLowerCase().includes(search) || (r.note || '').toLowerCase().includes(search));
 
-    const csvContent = '\uFEFF' + rowsCsv.join('\r\n');
-    const filename = `SoCanTom_Ao${ao}_${dateStr}.csv`;
-    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8' });
-
-    try {
-        const file = new File([blob], filename, { type: 'text/csv' });
-        if (navigator.canShare && navigator.canShare({ files: [file] })) {
-            await navigator.share({ files: [file], title: filename });
+        if (filtered.length === 0) {
+            list.innerHTML = '<div class="menu-empty">Chưa có lịch sử ao nào</div>';
             return;
         }
-    } catch (e) {}
 
-    const link = document.createElement('a');
-    link.href = URL.createObjectURL(blob);
-    link.download = filename;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    alert('📄 Đã tải file CSV "' + filename + '"\n\nMở bằng: Excel, Google Sheets, WPS Office, hoặc bất kỳ app xem văn bản nào (vào mục Tải xuống / Downloads trên máy để tìm file).');
-}
+        let html = '';
+        filtered.forEach(r => {
+            const isSelected = selectedRecordIds.has(r.id);
+            const isCurrent = r.id === currentRecordId;
+            html += `<div class="menu-item ${isCurrent ? 'active' : ''}" onclick="loadRecord('${r.id}')">
+                <input type="checkbox" class="menu-item-check" ${isSelected ? 'checked' : ''} onclick="event.stopPropagation(); toggleSelectRecord('${r.id}')">
+                <div class="info">
+                    <span class="name">Ao ${r.ao} (${r.type === 'sang' ? 'Sang tôm' : r.type === 'tia' ? 'Thu tỉa' : 'Thu hết'})</span>
+                    <span class="detail">${r.totalKg.toFixed(1)} kg • ${r.baskets} rổ • ${new Date(r.updatedAt).toLocaleDateString('vi-VN')}</span>
+                </div>
+                <div class="actions">
+                    <button class="del" onclick="event.stopPropagation(); deleteRecord('${r.id}')">🗑️</button>
+                </div>
+            </div>`;
+        });
+        list.innerHTML = html;
+    }
 
-// ===== PHÍM TẮT =====
-document.addEventListener('keydown', function(e) {
-    if (e.key === 'Enter') { e.preventDefault(); enterValue(); }
-});
+    function toggleSelectRecord(id) {
+        if (selectedRecordIds.has(id)) selectedRecordIds.delete(id);
+        else selectedRecordIds.add(id);
+
+        const sumBox = document.getElementById('aoSelectedSum');
+        if (selectedRecordIds.size > 0) {
+            sumBox.style.display = 'flex';
+            let total = 0;
+            selectedRecordIds.forEach(rid => {
+                const rec = allRecords.find(r => r.id === rid);
+                if (rec) total += rec.totalKg || 0;
+            });
+            document.getElementById('aoSelectedSumText').innerText = `🧮 Đã chọn ${selectedRecordIds.size} ao — Tổng: ${total.toFixed(1)} kg`;
+        } else {
+            sumBox.style.display = 'none';
+        }
+    }
+
+    function clearAoSelection() {
+        selectedRecordIds.clear();
+        document.getElementById('aoSelectedSum').style.display = 'none';
+        renderMenu();
+    }
+
+    function deleteRecord(id) {
+        if (confirm('Bạn có chắc muốn xóa ao này?')) {
+            allRecords = allRecords.filter(r => r.id !== id);
+            try { localStorage.setItem('cantom_records_v1', JSON.stringify(allRecords)); } catch(e) {}
+            if (currentRecordId === id) {
+                if (allRecords.length > 0) loadRecord(allRecords[0].id, false);
+                else createNewRecord(true);
+            }
+            renderMenu();
+        }
+    }
+
+    function exportJSON() {
+        const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(allRecords, null, 2));
+        const dl = document.createElement('a');
+        dl.setAttribute("href", dataStr);
+        dl.setAttribute("download", "so_can_tom_backup_" + Date.now() + ".json");
+        document.body.appendChild(dl);
+        dl.click();
+        dl.remove();
+    }
+
+    function exportAllData() {
+        exportJSON();
+    }
+
+    function clearAllHistory() {
+        if (confirm('CẢNH BÁO: Xóa toàn bộ lịch sử?')) {
+            allRecords = [];
+            localStorage.removeItem('cantom_records_v1');
+            createNewRecord(true);
+            toggleMenu();
+        }
+    }
+
+    function loadData() {
+        document.getElementById('fileInput').click();
+    }
+
+    function importData(e) {
+        const file = e.target.files[0];
+        if (!file) return;
+        const reader = new FileReader();
+        reader.onload = function(evt) {
+            try {
+                const parsed = JSON.parse(evt.target.result);
+                if (Array.isArray(parsed)) {
+                    allRecords = parsed;
+                    localStorage.setItem('cantom_records_v1', JSON.stringify(allRecords));
+                    if (allRecords.length > 0) loadRecord(allRecords[0].id, false);
+                    alert('Khôi phục dữ liệu thành công!');
+                    toggleMenu();
+                }
+            } catch(err) {
+                alert('File không hợp lệ!');
+            }
+        };
+        reader.readAsText(file);
+    }
+
+    function exportExcelReal() {
+        let csv = '\uFEFFAo,Hình thức,Ngày,Tổng kg,Số rổ,Ghi chú\n';
+        allRecords.forEach(r => {
+            csv += `"${r.ao}","${r.type}","${r.updatedAt}",${r.totalKg || 0},${r.baskets || 0},"${r.note || ''}"\n`;
+        });
+        const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+        const link = document.createElement('a');
+        link.href = URL.createObjectURL(blob);
+        link.download = 'so_can_tom_' + Date.now() + '.csv';
+        document.body.appendChild(link);
+        link.click();
+        link.remove();
+    }
+
+    function resetAll() {
+        if (confirm('Đặt lại toàn bộ bảng hiện tại?')) {
+            gridData = new Array(rows * cols).fill(null);
+            selectedIndex = 0;
+            renderTable();
+            closeMoreActions();
+        }
+    }
+
+    // ===== PHÍM TẮT =====
+    document.addEventListener('keydown', function(e) {
+        if (e.key === 'Enter') { e.preventDefault(); enterValue(); }
+    });
 </script>
 </body>
 </html>
