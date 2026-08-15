@@ -922,6 +922,7 @@
             <button class="menu-btn" onclick="event.stopPropagation();showPinTip()" title="Ghim ra màn hình chính">📌</button>
         </div>
         <div style="display:flex;align-items:center;gap:6px;">
+            <span id="basketCountBadge" style="font-size:11px;background:#e2e8f0;color:#334155;padding:2px 6px;border-radius:6px;font-weight:700;" title="Tổng số rổ đã cân">🧺 <span id="totalBaskets">0</span> rổ</span>
             <span class="label" id="grandTotalLabel" style="font-size:11px;color:#64748b;font-weight:700;">📊 TỔNG</span>
             <span class="value" id="grandTotal" style="font-size:16px;font-weight:800;color:#ef4444;">0.0 kg</span>
             <span class="summary-bar-arrow" id="summaryBarArrow">▼</span>
@@ -969,6 +970,7 @@
         <button class="tab-picker-btn" onclick="openTabPicker()">
             📑<span id="tabPositionLabel">1/1</span>
         </button>
+        <span id="fixedWeightBadgeNav" style="display:none;font-size:10px;background:#22c55e;color:white;padding:2px 6px;border-radius:6px;font-weight:700;white-space:nowrap;margin-left:2px;" title="Đang bật cố định số cân">🎯 <span id="fixedWeightBadgeNavVal">5.0</span></span>
         <button class="tab-nav-arrow" onclick="openTabSettings()" title="Cài đặt tab">⚙️</button>
     </div>
 
@@ -1092,6 +1094,15 @@
                 <div class="decimal-places-setting">
                     <input type="number" id="decimalPlacesInput" value="1" min="1" max="3" onchange="updateDecimalPlaces()" title="Số chữ số thập phân, vd: 2 → gõ 1275 ra 12.75">
                     <span>lẻ</span>
+                </div>
+            </div>
+            <div class="auto-decimal-toggle" style="flex-wrap:wrap;margin-top:6px;">
+                <input type="checkbox" id="fixedWeightToggle" onchange="toggleFixedWeight()">
+                <label for="fixedWeightToggle">🎯 Cố định số cân (Mã cân)</label>
+                <span class="badge off" id="fixedWeightBadge">OFF</span>
+                <div class="decimal-places-setting" style="display:flex;align-items:center;gap:3px;margin-left:auto;">
+                    <input type="number" id="fixedWeightInput" value="5.0" step="0.1" min="0" style="width:55px;font-size:12px;text-align:center;" onchange="updateFixedWeightValue()" title="Trọng lượng cố định mỗi rổ, vd: 5.0">
+                    <span style="font-size:11px;color:#64748b;">kg</span>
                 </div>
             </div>
         </div>
@@ -1236,6 +1247,8 @@ let recordMoneyCache = {};
 let isCumulative = false;
 let isAutoDecimal = false;
 let decimalPlaces = 1;
+let isFixedWeight = false;
+let fixedWeightValue = 5.0;
 
 // ===== KHỞI TẠO =====
 document.addEventListener('DOMContentLoaded', function() {
@@ -1265,6 +1278,8 @@ document.addEventListener('DOMContentLoaded', function() {
 
     loadAutoDecimalState();
     loadDecimalPlaces();
+    loadFixedWeightState();
+    loadFixedWeightValue();
 
     const saved = localStorage.getItem('colsPerTab');
     if (saved) {
@@ -2060,10 +2075,18 @@ function calculateAll() {
 
 function updateHarvestTotals() {
     let total = 0;
+    let basketCount = 0;
     gridData.forEach(val => {
-        if (val && !isNaN(val) && val > 0) total += val;
+        if (val !== null && val !== undefined && val !== '' && !isNaN(val) && val > 0) {
+            total += val;
+            basketCount++;
+        }
     });
     document.getElementById('typeTotal').textContent = total.toFixed(1) + ' kg';
+    
+    // Cập nhật tổng số rổ lên header
+    const basketEl = document.getElementById('totalBaskets');
+    if (basketEl) basketEl.textContent = basketCount;
 
     const aoName = (document.getElementById('aoNumber').value || '').trim();
     let cumulative = 0;
@@ -2094,8 +2117,78 @@ function updateHarvestTotals() {
     }
 }
 
+// ===== CỐ ĐỊNH SỐ CÂN (MÃ CÂN) =====
+function toggleFixedWeight() {
+    const checkbox = document.getElementById('fixedWeightToggle');
+    isFixedWeight = checkbox.checked;
+    updateFixedWeightUI();
+    try { localStorage.setItem('cantom_fixed_weight_enabled', isFixedWeight ? 'true' : 'false'); } catch(e) {}
+}
+
+function loadFixedWeightState() {
+    try {
+        const saved = localStorage.getItem('cantom_fixed_weight_enabled');
+        if (saved !== null) {
+            isFixedWeight = saved === 'true';
+            const cb = document.getElementById('fixedWeightToggle');
+            if (cb) cb.checked = isFixedWeight;
+            updateFixedWeightUI();
+        }
+    } catch(e) {}
+}
+
+function updateFixedWeightValue() {
+    const input = document.getElementById('fixedWeightInput');
+    if (!input) return;
+    let val = parseFloat(input.value);
+    if (isNaN(val) || val < 0) val = 5.0;
+    fixedWeightValue = val;
+    input.value = val.toFixed(1);
+    updateFixedWeightUI();
+    try { localStorage.setItem('cantom_fixed_weight_value', fixedWeightValue); } catch(e) {}
+}
+
+function loadFixedWeightValue() {
+    try {
+        const saved = localStorage.getItem('cantom_fixed_weight_value');
+        if (saved !== null) {
+            fixedWeightValue = parseFloat(saved) || 5.0;
+            const input = document.getElementById('fixedWeightInput');
+            if (input) input.value = fixedWeightValue.toFixed(1);
+        }
+    } catch(e) {}
+    updateFixedWeightUI();
+}
+
+function updateFixedWeightUI() {
+    const badge = document.getElementById('fixedWeightBadge');
+    if (badge) {
+        badge.textContent = isFixedWeight ? 'ON' : 'OFF';
+        badge.className = 'badge ' + (isFixedWeight ? 'on' : 'off');
+    }
+    const navBadge = document.getElementById('fixedWeightBadgeNav');
+    const navVal = document.getElementById('fixedWeightBadgeNavVal');
+    if (navBadge && navVal) {
+        if (isFixedWeight) {
+            navVal.textContent = fixedWeightValue.toFixed(1);
+            navBadge.style.display = 'inline-flex';
+        } else {
+            navBadge.style.display = 'none';
+        }
+    }
+}
+
 // ===== NHẬP LIỆU =====
 function enterValue() {
+    // Nếu đang bật cố định số cân, tự động điền số cân cố định vào ô hiện tại trước khi xuống dòng
+    if (isFixedWeight && fixedWeightValue !== null && !isNaN(fixedWeightValue)) {
+        const input = document.querySelector(`.cell-input[data-index="${selectedIndex}"]`);
+        if (input) {
+            input.value = fixedWeightValue.toFixed(1);
+            updateDataFromInput(input);
+        }
+    }
+
     const currentCol = getCol(selectedIndex);
     const currentRow = getRow(selectedIndex);
     if (currentRow === rows - 1) {
