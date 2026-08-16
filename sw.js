@@ -1,9 +1,10 @@
-const CACHE_NAME = 'socan-v3';
+const CACHE_NAME = 'socan-v4';
 const urlsToCache = [
-    '/socan_tom/',
-    '/socan_tom/index.html',
-    '/socan_tom/manifest.json',
-    '/socan_tom/icon-192.png'
+    '/socan-tom/',
+    '/socan-tom/index.html',
+    '/socan-tom/manifest.json',
+    '/socan-tom/icon-192.png'
+];
 ];
 
 self.addEventListener('install', event => {
@@ -48,7 +49,7 @@ self.addEventListener('fetch', event => {
             })
             .catch(() => {
                 return caches.match(event.request).then(cached => {
-                    return cached || caches.match('/socan_tom/index.html');
+                    return cached || caches.match('/socan-tom/index.html');
                 });
             })
     );
